@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Công cụ K-Map và chuyển đổi cơ số số nguyên cho CSE-206."
+    />
+    <title>CSE-206 Tools</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <svg
+            class="brand-mark"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+            />
+          </svg>
+          <span class="brand-copy">
+            <span class="brand-kicker">CSE · 206</span>
+            <span class="brand-name">Logic Lab</span>
+          </span>
+          <button
+            class="sidebar-toggle"
+            id="sidebar-toggle"
+            type="button"
+            aria-label="Thu gọn thanh bên"
+            title="Thu gọn thanh bên"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m14 18-6-6 6-6" />
+            </svg>
+          </button>
+        </div>
+        <div class="sidebar-label">CÔNG CỤ</div>
+        <nav class="tool-nav" id="tool-navigation" aria-label="Công cụ">
+          <button
+            class="nav on"
+            data-t="0"
+            data-title="K-Map &amp; Truth Table"
+            data-description="Tạo bảng chân trị, nhóm minterm và rút gọn biểu thức logic."
+            aria-label="K-Map & Truth Table"
+            title="K-Map & Truth Table"
+            aria-current="page"
+          >
+            <span class="nav-index">01</span>
+            <span class="nav-copy">
+              <span>K-Map &amp; Truth Table</span>
+              <small>Boolean simplifier</small>
+            </span>
+            <span class="nav-arrow" aria-hidden="true">→</span>
+          </button>
+          <button
+            class="nav"
+            data-t="1"
+            data-title="Chuyển đổi cơ số"
+            data-description="Xem biểu diễn unsigned, bù 2, nhị phân và hexadecimal theo độ rộng bit."
+            aria-label="Chuyển đổi cơ số"
+            title="Chuyển đổi cơ số"
+          >
+            <span class="nav-index">02</span>
+            <span class="nav-copy">
+              <span>Chuyển đổi cơ số</span>
+              <small>Integer converter</small>
+            </span>
+            <span class="nav-arrow" aria-hidden="true">→</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <div class="breadcrumb">
+            <span>WORKSPACE</span>
+            <span class="breadcrumb-divider">/</span>
+            <span id="breadcrumb-current">K-MAP</span>
+          </div>
+        </header>
+
+        <div class="main-content">
+        <section id="s0" class="tool-section">
+          <header class="page-intro">
+            <span class="eyebrow"><span class="eyebrow-line"></span>BOOLEAN ALGEBRA</span>
+            <h1 id="tool-title">K-Map &amp; Truth Table</h1>
+            <p id="tool-description">Tạo bảng chân trị, nhóm minterm và rút gọn biểu thức logic.</p>
+          </header>
+
+          <div class="card control-card">
+            <div class="control-heading">
+              <span class="step-badge">01</span>
+              <div>
+                <h2>Thiết lập đầu vào</h2>
+                <p>Chọn số biến và số hàm cần tối giản.</p>
+              </div>
+            </div>
+            <div class="control-fields">
+            <label class="field">
+              <span>Số biến đầu vào <span class="field-note">N</span></span>
+              <input
+                type="number"
+                id="n"
+                min="1"
+                max="8"
+                value="4"
+                class="numeric-input"
+              />
+            </label>
+            <label class="field">
+              <span>Số hàm đầu ra <span class="field-note">M</span></span>
+              <input
+                type="number"
+                id="m"
+                min="1"
+                max="16"
+                value="2"
+                class="numeric-input"
+              />
+            </label>
+            <button class="btn primary-btn" id="solve">
+              <span>Simplify logic</span><span aria-hidden="true">↗</span>
+            </button>
+            </div>
+          </div>
+
+          <div class="card paste-card">
+            <div class="paste-heading">
+              <span class="paste-icon" aria-hidden="true">↳</span>
+              <div>
+                <h2>Nhập từ bảng tính</h2>
+                <p>Dán bảng từ Excel hoặc Word, hệ thống sẽ tự nhận diện dữ liệu.</p>
+              </div>
+            </div>
+            <textarea
+              id="pta"
+              rows="2"
+              class="paste-input"
+              placeholder="Dán các cột đầu vào và đầu ra tại đây..."
+            ></textarea>
+            <div class="paste-actions">
+              <span id="pst" class="paste-status" aria-live="polite"></span>
+              <button class="btn secondary-btn" id="pap">Áp dụng dữ liệu</button>
+            </div>
+          </div>
+
+          <div class="workspace-grid">
+            <section class="card panel table-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">INPUT MATRIX</span>
+                  <h2>Bảng chân trị</h2>
+                  <span class="header-edit-hint">Nhấn vào nhãn cột để tùy chỉnh · Chữ, số, _</span>
+                </div>
+                <span class="panel-meta" id="kmap-summary">16 hàng</span>
+              </div>
+              <div id="tt" class="table-container"></div>
+            </section>
+            <section class="card panel results-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">MINIMIZED OUTPUT</span>
+                  <h2>Kết quả tối giản</h2>
+                </div>
+                <span class="result-indicator"><span class="status-dot"></span>Live</span>
+              </div>
+              <div id="res" class="result-grid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="s1" class="tool-section hidden">
+          <header class="page-intro">
+            <span class="eyebrow"><span class="eyebrow-line"></span>NUMBER SYSTEMS</span>
+            <h1>Chuyển đổi cơ số</h1>
+            <p>Phân tích số nguyên theo độ rộng bit và các dạng biểu diễn phổ biến.</p>
+          </header>
+          <section class="card converter-card">
+            <div class="control-heading">
+              <span class="step-badge">01</span>
+              <div>
+                <h2>Giá trị cần chuyển đổi</h2>
+                <p>Nhập giá trị, cơ số nguồn và độ rộng biểu diễn.</p>
+              </div>
+            </div>
+            <div class="converter-fields">
+              <label class="field converter-value">
+                <span>Giá trị</span>
+                <input id="bv" value="-25" class="font-mono" aria-label="Giá trị cần chuyển đổi" />
+              </label>
+              <label class="field">
+                <span>Cơ số nguồn</span>
+                <select id="bb">
+                  <option value="10">Decimal</option>
+                  <option value="2">Binary</option>
+                  <option value="16">Hexadecimal</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Độ rộng</span>
+                <span class="bit-field">
+                  <select id="bw" aria-label="Độ rộng bit">
+                    <option>4</option>
+                    <option selected>8</option>
+                    <option>16</option>
+                    <option>32</option>
+                  </select>
+                  <span>bit</span>
+                </span>
+              </label>
+            </div>
+          </section>
+          <section class="card panel conversion-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">CONVERSION RESULTS</span>
+                <h2>Các dạng biểu diễn</h2>
+              </div>
+            </div>
+            <div id="bo" class="conversion-results"></div>
+          </section>
+        </section>
+        </div>
+        <footer class="page-footer">Nguyễn Trọng Tiến</footer>
+      </main>
+    </div>
+
+    <div
+      id="copy-modal"
+      class="modal-backdrop hidden"
+    >
+      <div class="card modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="panel-kicker">EXPORT RESULT</span>
+            <h2 id="modal-target-info">
+            Custom Copy Options
+            </h2>
+          </div>
+          <button
+            id="btn-close-modal"
+            class="modal-close"
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <div class="modal-group">
+            <h3>Định dạng đầu ra</h3>
+            <div class="format-options">
+            <button
+              class="btn fmt-btn format-option selected"
+              data-fmt="word"
+            >
+              <span class="format-icon">W</span>
+              <span>MS Word<small>Định dạng phong phú</small></span>
+            </button>
+            <button
+              class="btn fmt-btn format-option"
+              data-fmt="text"
+            >
+              <span class="format-icon format-icon-text">TXT</span>
+              <span>Văn bản<small>Plain text / Excel</small></span>
+            </button>
+            </div>
+          </div>
+
+          <div class="modal-group">
+            <h3>Thành phần cần sao chép</h3>
+            <div class="copy-options">
+            <label class="copy-option">
+              <input
+                type="checkbox"
+                id="copy-opt-grid"
+                checked
+              />
+              <span>Ma trận lưới K-Map</span>
+            </label>
+            <label class="copy-option">
+              <input
+                type="checkbox"
+                id="copy-opt-sop"
+                checked
+              />
+              <span>Phương trình tối thiểu SOP (Sum of Products)</span>
+            </label>
+            <label class="copy-option">
+              <input
+                type="checkbox"
+                id="copy-opt-pos"
+              />
+              <span>Phương trình tối thiểu POS (Product of Sums)</span>
+            </label>
+            <label class="copy-option">
+              <input
+                type="checkbox"
+                id="copy-opt-minterms"
+              />
+              <span>Chỉ số Minterms &amp; Don't cares</span>
+            </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn secondary-btn" onclick="$('copy-modal').classList.add('hidden')">
+            Hủy
+          </button>
+          <button class="btn primary-btn" id="btn-modal-execute">
+            Sao chép vào Clipboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="src/app.js" defer></script>
+  </body>
+</html>
