@@ -327,61 +327,140 @@ const $ = (id) => document.getElementById(id);
         solve();
       };
 
-      function qm(on, dc) {
-        if (!on.length) return [];
-        let cur = new Map();
-        [...on, ...dc].forEach((t) => cur.set(t + ",0", { v: t, m: 0 }));
-        const P = [];
+      function qmTrace(on, dc, collectSteps = true) {
+        if (!on.length) {
+          return {
+            target: on,
+            rounds: [],
+            primes: [],
+            selected: [],
+            selections: [],
+          };
+        }
 
-        while (cur.size) {
-          const a = [...cur.values()],
-            nx = new Map(),
-            u = new Set();
-          for (let i = 0; i < a.length; i++) {
-            for (let j = i + 1; j < a.length; j++) {
-              const x = a[i],
-                y = a[j];
-              if (x.m !== y.m) continue;
-              const d = x.v ^ y.v;
-              if (d && !(d & (d - 1))) {
-                const v = x.v & ~d,
-                  m = x.m | d;
-                nx.set(v + "," + m, { v, m });
-                u.add(i);
-                u.add(j);
+        let current = new Map();
+        [...on, ...dc].forEach((term) =>
+          current.set(`${term},0`, { v: term, m: 0 }),
+        );
+        const rounds = collectSteps ? [] : null;
+        const primes = [];
+        const bitCount = (value) => {
+          let count = 0;
+          while (value) {
+            count += value & 1;
+            value >>>= 1;
+          }
+          return count;
+        };
+
+        while (current.size) {
+          const terms = [...current.values()];
+          const next = new Map();
+          const combined = new Set();
+          const groups = collectSteps ? new Map() : null;
+          const combinations = collectSteps ? [] : null;
+          if (groups) {
+            terms.forEach((term) => {
+              const ones = bitCount(term.v & ~term.m);
+              if (!groups.has(ones)) groups.set(ones, []);
+              groups.get(ones).push(term);
+            });
+          }
+
+          for (let i = 0; i < terms.length; i++) {
+            for (let j = i + 1; j < terms.length; j++) {
+              const left = terms[i];
+              const right = terms[j];
+              if (left.m !== right.m) continue;
+              const difference = left.v ^ right.v;
+              if (!difference || (difference & (difference - 1))) continue;
+
+              const result = {
+                v: left.v & ~difference,
+                m: left.m | difference,
+              };
+              next.set(`${result.v},${result.m}`, result);
+              combined.add(i);
+              combined.add(j);
+              if (combinations) {
+                combinations.push({ left, right, result, difference });
               }
             }
           }
-          a.forEach((p, i) => {
-            if (!u.has(i)) P.push(p);
-          });
-          cur = nx;
+
+          const roundPrimes = terms.filter((_, index) => !combined.has(index));
+          primes.push(...roundPrimes);
+          if (rounds) {
+            rounds.push({
+              groups: [...groups.entries()].map(([ones, items]) => ({
+                ones,
+                items,
+              })),
+              combinations,
+              primes: roundPrimes,
+            });
+          }
+          current = next;
         }
 
-        const cv = (p, t) => (t & ~p.m) === p.v,
-          left = new Set(on),
-          sel = [];
-        on.forEach((t) => {
-          const c = P.filter((p) => cv(p, t));
-          if (c.length === 1 && !sel.includes(c[0])) sel.push(c[0]);
+        const covers = (implicant, term) =>
+          (term & ~implicant.m) === implicant.v;
+        const uncovered = new Set(on);
+        const selected = [];
+        const selections = collectSteps ? [] : null;
+        on.forEach((term) => {
+          const candidates = primes.filter((prime) => covers(prime, term));
+          if (candidates.length === 1 && !selected.includes(candidates[0])) {
+            const prime = candidates[0];
+            selected.push(prime);
+            if (selections) {
+              selections.push({
+                prime,
+                reason: `Ô ${term} chỉ được phủ bởi implicant này`,
+                covered: on.filter((item) => covers(prime, item)),
+              });
+            }
+          }
         });
-        sel.forEach((p) => on.forEach((t) => cv(p, t) && left.delete(t)));
+        selected.forEach((prime) =>
+          on.forEach((term) => covers(prime, term) && uncovered.delete(term)),
+        );
 
-        while (left.size) {
-          let b = null,
-            bc = -1;
-          P.forEach((p) => {
-            const c = [...left].filter((t) => cv(p, t)).length;
-            if (c > bc) {
-              bc = c;
-              b = p;
+        while (uncovered.size) {
+          let best = null;
+          let bestCount = -1;
+          primes.forEach((prime) => {
+            const count = [...uncovered].filter((term) =>
+              covers(prime, term),
+            ).length;
+            if (count > bestCount) {
+              bestCount = count;
+              best = prime;
             }
           });
-          if (!b) break;
-          sel.push(b);
-          [...left].forEach((t) => cv(b, t) && left.delete(t));
+          if (!best) break;
+
+          const newlyCovered = [...uncovered].filter((term) =>
+            covers(best, term),
+          );
+          selected.push(best);
+          if (selections) {
+            selections.push({
+              prime: best,
+              reason: `Phủ thêm các ô ${newlyCovered.join(", ")}`,
+              covered: on.filter((term) => covers(best, term)),
+            });
+          }
+          newlyCovered.forEach((term) => uncovered.delete(term));
         }
-        return sel;
+
+        return {
+          target: on,
+          rounds: rounds || [],
+          primes,
+          selected,
+          selections: selections || [],
+        };
       }
 
       const lits = (t, n, inv) => {
@@ -419,7 +498,65 @@ const $ = (id) => document.getElementById(id);
                   : a.join(" + ");
               }).join("");
 
-      function kmap(i, w) {
+      const GROUP_COLORS = [
+        { color: "#2563eb", tint: "#dbeafe" },
+        { color: "#dc2626", tint: "#fee2e2" },
+        { color: "#059669", tint: "#d1fae5" },
+        { color: "#9333ea", tint: "#f3e8ff" },
+        { color: "#d97706", tint: "#fef3c7" },
+        { color: "#0891b2", tint: "#cffafe" },
+        { color: "#db2777", tint: "#fce7f3" },
+        { color: "#4f46e5", tint: "#e0e7ff" },
+      ];
+
+      function booleanReductionSteps(sopTrace, posTrace, n) {
+        const groups = [
+          ...sopTrace.selected.map((implicant, index) => ({
+            implicant,
+            index,
+            isPos: false,
+            color: GROUP_COLORS[index % GROUP_COLORS.length],
+          })),
+          ...posTrace.selected.map((implicant, index) => ({
+            implicant,
+            index,
+            isPos: true,
+            color:
+              GROUP_COLORS[
+                (index + sopTrace.selected.length) % GROUP_COLORS.length
+              ],
+          })),
+        ];
+        const renderGroups = (isPos) => {
+          const matching = groups.filter((group) => group.isPos === isPos);
+          if (!matching.length) {
+            return `<p class="group-empty">Không cần nhóm ô ${isPos ? "0" : "1"}.</p>`;
+          }
+          return `<ul class="group-list">${matching
+            .map((group) => {
+              const expression = isPos
+                ? posStr([group.implicant], n)
+                : sopStr([group.implicant], n);
+              const covered = (isPos ? posTrace.target : sopTrace.target)
+                .filter(
+                  (term) =>
+                    (term & ~group.implicant.m) === group.implicant.v,
+                )
+                .map((term) => `${isPos ? "M" : "m"}${term}`)
+                .join(", ");
+              return `<li class="group-item"><span class="group-swatch" style="--group-color:${group.color.color};--group-tint:${group.color.tint}">${group.isPos ? "P" : "S"}${group.index + 1}</span><span><strong>${expression}</strong><small>Phủ ${covered}</small></span></li>`;
+            })
+            .join("")}</ul>`;
+        };
+        const sop = sopStr(sopTrace.selected, n);
+        const pos = posStr(posTrace.selected, n);
+        return {
+          groups,
+          html: `<div class="steps-legend">Mỗi màu biểu thị một nhóm trên K-map.</div><section class="boolean-step-section"><h4>Bước 1 · Gom ô 1 <span>SOP</span></h4>${renderGroups(false)}<p class="group-equation">SOP tối giản: <strong>${sop}</strong></p></section><section class="boolean-step-section"><h4>Bước 2 · Gom ô 0 <span>POS</span></h4>${renderGroups(true)}<p class="group-equation">POS tối giản: <strong>${pos}</strong></p></section>`,
+        };
+      }
+
+      function kmap(i, w, groups = []) {
         const { n } = getSanitizedParams();
         const rv = n >> 1,
           cvn = n - rv,
@@ -460,12 +597,29 @@ const $ = (id) => document.getElementById(id);
           for (let c = 0; c < 1 << cvn; c++) {
             const mt = (gy(r) << cvn) | gy(c),
               v = tt[mt][i];
+            const cellGroups = groups.filter(
+              (group) => (mt & ~group.implicant.m) === group.implicant.v,
+            );
             const valueClass =
               v === "1" ? "kmap-value-one" : v === "X" ? "kmap-value-x" : "";
+            const groupStops = cellGroups
+              .map((group, index) => {
+                const start = (index / cellGroups.length) * 100;
+                const end = ((index + 1) / cellGroups.length) * 100;
+                return `${group.color.color} ${start}% ${end}%`;
+              })
+              .join(", ");
+            const groupStyle = !w && cellGroups.length
+              ? `--group-color:${cellGroups[0].color.color};--group-tint:${cellGroups[0].color.tint};--group-strip:linear-gradient(90deg,${groupStops});`
+              : "";
             const cellStyle = w
               ? `${bd}${pd}${v === "X" ? "background:#fff7df;color:#9c6a0a;font-weight:bold;" : valueStyle}`
+              : groupStyle;
+            const groupClass = cellGroups.length ? " kmap-value-grouped" : "";
+            const groupTitle = cellGroups.length
+              ? `; nhóm ${cellGroups.map((group) => `${group.isPos ? "P" : "S"}${group.index + 1}`).join(", ")}`
               : "";
-            h += `<td class="kmap-value ${valueClass}" style="${cellStyle}" title="m${mt}">${v === "0" ? "" : v}</td>`;
+            h += `<td class="kmap-value ${valueClass}${groupClass}" style="${cellStyle}" title="m${mt}${groupTitle}"><span>${v === "0" ? "" : v}</span></td>`;
           }
           h += "</tr>";
         }
@@ -486,11 +640,13 @@ const $ = (id) => document.getElementById(id);
             const v = tt[r][i];
             (v === "1" ? on : v === "X" ? dc : off).push(r);
           }
-          const S = qm(on, dc),
-            C = qm(off, dc);
+          const sopTrace = qmTrace(on, dc, false);
+          const posTrace = qmTrace(off, dc, false);
+          const S = sopTrace.selected;
+          const C = posTrace.selected;
           const outputLabel = outputLabels[i];
           const notation = outputNotations[i] || "min";
-          last.out.push({ S, C, on, off, dc });
+          last.out.push({ S, C, on, off, dc, sopTrace, posTrace });
 
           h += `<article class="result-card">
       <div class="result-heading">
@@ -499,6 +655,7 @@ const $ = (id) => document.getElementById(id);
           <button class="result-action" onclick="window.copySingleExpr(${i},'SOP')">SOP</button>
           <button class="result-action" onclick="window.copySingleExpr(${i},'POS')">POS</button>
           <button class="result-action" title="Copy K-Map" aria-label="Copy K-Map ${outputLabel}" onclick="window.copyKmap(${i})">K-Map</button>
+          <button class="result-action step-toggle" aria-expanded="false" onclick="window.toggleBooleanSteps(${i})">Xem từng bước</button>
           <button class="result-action custom-copy" onclick="window.openCustomCopyModal(${i})">Export</button>
         </div>
       </div>
@@ -506,11 +663,41 @@ const $ = (id) => document.getElementById(id);
       <div class="map-container">${kmap(i, false)}</div>
       <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel} = ${sopStr(S, n)}</code></div>
       <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel} = ${posStr(C, n)}</code></div>
+      <div class="boolean-steps" id="boolean-steps-${i}" hidden></div>
     </article>`;
         }
         $("res").innerHTML = h;
       }
       $("solve").onclick = solve;
+
+      window.toggleBooleanSteps = function (outIdx) {
+        if (!last || !last.out[outIdx]) return;
+        const panel = $(`boolean-steps-${outIdx}`);
+        const button = $("res")
+          .querySelectorAll(".result-card")
+          [outIdx].querySelector(".step-toggle");
+        if (!panel.hidden) {
+          panel.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+          button.textContent = "Xem từng bước";
+          $("res").querySelectorAll(".result-card")[outIdx]
+            .querySelector(".map-container").innerHTML = kmap(outIdx, false);
+          return;
+        }
+
+        const { sopTrace, posTrace } = last.out[outIdx];
+        const steps = booleanReductionSteps(sopTrace, posTrace, last.n);
+        panel.innerHTML = steps.html;
+        $("res").querySelectorAll(".result-card")[outIdx]
+          .querySelector(".map-container").innerHTML = kmap(
+            outIdx,
+            false,
+            steps.groups,
+          );
+        panel.hidden = false;
+        button.setAttribute("aria-expanded", "true");
+        button.textContent = "Ẩn các bước";
+      };
 
       /* ---------- Custom Granular Copy Helpers ---------- */
       window.copySingleExpr = function (outIdx, type) {

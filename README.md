@@ -18,6 +18,8 @@ don't-cares. If the variable list is omitted, the current input count and
 labels are used.
 For a quick single-function entry, select **Minterm** or **Maxterm**, enter the
 comma-separated indexes in the search field, and apply them.
+Each output includes **Xem từng bước**, which shows the SOP/POS grouping,
+implicant selection, and Boolean-law identities used for each reduction.
 
 ## Run
 
