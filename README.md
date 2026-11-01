@@ -11,6 +11,14 @@ labels with commas or tabs, or paste a list copied from a spreadsheet. The
 truth-table's **Sao chép bảng** button copies the current labels and values as
 tab-separated text for pasting into Excel, Word, or another spreadsheet.
 
+The input area also accepts minterm/maxterm formulas, one function per line,
+such as `a) Σ m(0,2,4,6,8,10,12)` or `b) Π M(1,3,5,7)`. Minterm indexes are
+set to 1, maxterm indexes to 0, and optional `+ d(...)` indexes are treated as
+don't-cares. If the variable list is omitted, the current input count and
+labels are used.
+For a quick single-function entry, select **Minterm** or **Maxterm**, enter the
+comma-separated indexes in the search field, and apply them.
+
 ## Run
 
 Open `index.html` in a modern browser. No installation, build step, framework,

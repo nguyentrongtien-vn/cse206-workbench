@@ -145,19 +145,42 @@
             <div class="paste-heading">
               <span class="paste-icon" aria-hidden="true">↳</span>
               <div>
-                <h2>Nhập từ bảng tính</h2>
-                <p>Dán bảng từ Excel hoặc Word, hệ thống sẽ tự nhận diện dữ liệu.</p>
+                <h2>Nhập bảng hoặc công thức</h2>
+                <p>Dán bảng tính hoặc nhập công thức minterm/maxterm; mỗi dòng là một hàm đầu ra.</p>
               </div>
             </div>
             <textarea
               id="pta"
-              rows="2"
+              rows="3"
               class="paste-input"
-              placeholder="Dán các cột đầu vào và đầu ra tại đây..."
+              placeholder="Bảng: dán dữ liệu từ Excel&#10;Công thức: a) Σ m(0,2,4,6,8,10,12)&#10;Hoặc: b) Π M(1,3,5,7)"
             ></textarea>
+            <div class="term-entry" aria-label="Nhập chỉ số minterm hoặc maxterm">
+              <label class="term-entry-field">
+                <span>Loại chỉ số</span>
+                <select id="term-kind">
+                  <option value="min">Minterm (Σm)</option>
+                  <option value="max">Maxterm (ΠM)</option>
+                </select>
+              </label>
+              <label class="term-entry-field term-index-field">
+                <span>Danh sách chỉ số</span>
+                <input
+                  id="term-indexes"
+                  type="search"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="Ví dụ: 0, 2, 4, 6"
+                  aria-label="Danh sách chỉ số minterm hoặc maxterm"
+                />
+              </label>
+              <button class="btn secondary-btn" id="apply-term-indexes" type="button">
+                Áp dụng chỉ số
+              </button>
+            </div>
             <div class="paste-actions">
               <span id="pst" class="paste-status" aria-live="polite"></span>
-              <button class="btn secondary-btn" id="pap">Áp dụng dữ liệu</button>
+              <button class="btn secondary-btn" id="pap">Áp dụng</button>
             </div>
           </div>
 
@@ -344,7 +367,7 @@
                 type="checkbox"
                 id="copy-opt-minterms"
               />
-              <span>Chỉ số Minterms &amp; Don't cares</span>
+              <span>Chỉ số minterm/maxterm &amp; Don't cares</span>
             </label>
             </div>
           </div>

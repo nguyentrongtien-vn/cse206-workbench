@@ -598,6 +598,40 @@ input[type="number"] {
   color: #a0a9ba;
 }
 
+.term-entry {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+  background: #fafbfe;
+}
+
+.term-entry-field {
+  display: grid;
+  min-width: 150px;
+  gap: 5px;
+  color: #78839a;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.term-entry-field select,
+.term-entry-field input {
+  min-height: 36px;
+  font-size: 0.74rem;
+}
+
+.term-index-field {
+  flex: 1;
+}
+
+.term-entry > .btn {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
 .paste-actions {
   display: flex;
   min-height: 35px;
@@ -924,43 +958,51 @@ table.t th {
 }
 
 .map-container .kmap-table {
-  width: 100%;
   min-width: max-content;
-  border-collapse: separate;
-  border-spacing: 3px;
-  padding: 7px;
+  border-collapse: collapse;
+  margin: 0 auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.map-container .kmap-table th,
 .map-container .kmap-table td {
-  min-width: 34px;
-  height: 34px;
-  padding: 5px 8px !important;
-  border: 1px solid #e8ebf2 !important;
-  border-radius: 6px;
-  background: #f7f8fc !important;
-  color: #647087 !important;
+  min-width: 42px;
+  height: 32px;
+  padding: 5px 10px !important;
+  border: 1px solid #dfe4ec !important;
+  border-radius: 0;
+  background: #fff !important;
+  color: #344054 !important;
   font-size: 0.72rem;
   text-align: center;
 }
 
 .map-container .kmap-table .kmap-axis {
-  border-color: transparent !important;
-  background: transparent !important;
-  color: #77839a !important;
+  background: #f7f8fc !important;
+  color: #536078 !important;
   font-size: 0.65rem;
   font-weight: 650;
 }
 
+.map-container .kmap-table .kmap-corner,
+.map-container .kmap-table .kmap-column-group,
+.map-container .kmap-table .kmap-row-group {
+  color: #263149 !important;
+  font-weight: 700;
+}
+
+.map-container .kmap-table .kmap-row-group {
+  min-width: 54px;
+  vertical-align: middle;
+}
+
 .map-container .kmap-table .kmap-value-one {
-  border-color: #b7ead4 !important;
-  background: #e8f8f0 !important;
-  color: #138258 !important;
+  background: #fff !important;
+  color: #111827 !important;
   font-weight: 700;
 }
 
 .map-container .kmap-table .kmap-value-x {
-  border-color: #f4dfaa !important;
   background: #fff7df !important;
   color: #9c6a0a !important;
   font-weight: 650;
@@ -1528,6 +1570,16 @@ table.t th {
 
   .label-series-group {
     padding: 8px;
+  }
+
+  .term-entry {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 8px;
+  }
+
+  .term-entry-field {
+    min-width: 0;
   }
 
   .table-header-actions {

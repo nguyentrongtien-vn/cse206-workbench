@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
       let tt = [],
   inputLabels = [...VAR_NAMES],
   outputLabels = Array.from({ length: 16 }, (_, i) => `Y${i}`),
+  outputNotations = Array(16).fill("min"),
   last = null,
         activeModalOutputIdx = 0,
         activeModalFormat = "word";
@@ -109,7 +110,7 @@ const $ = (id) => document.getElementById(id);
           : inputLabels.slice(0, n);
         const allLabels = [...nextLabels, ...otherLabels];
         if (nextLabels.length !== count) {
-          toast(`Cần nhập đúng ${count} nhãn, phân tách bằng dấu phẩy.`);
+          toast(`Cần nhập đúng ${count} nhãn, phân tách bằng dấu phẩy hoặc tab.`);
           return;
         }
         if (
@@ -431,31 +432,40 @@ const $ = (id) => document.getElementById(id);
         const hc = w
           ? "font-weight:bold;background:#e2e8f0;color:#0f172a;"
           : "background:#0f172a;font-weight:bold;color:#94a3b8;";
-        const groupLabel = (labels) =>
-          labels.every((label) => label.length === 1)
-            ? labels.join("")
-            : labels.join(", ");
+        const rowGroupLabel = inputLabels.slice(0, rv).join("");
+        const columnGroupLabel = inputLabels.slice(rv, n).join("");
+        const tableStyle = w
+          ? "border-collapse:collapse;margin:0.5rem auto;color:#111827"
+          : "";
+        const headerStyle = w
+          ? `${bd}${pd}font-weight:bold;background:#f3f4f6;color:#111827;`
+          : "";
+        const axisStyle = w
+          ? `${bd}${pd}background:#f8fafc;color:#334155;`
+          : "";
+        const valueStyle = w
+          ? `${bd}${pd}background:#fff;color:#111827;`
+          : "";
 
-        let h = `<table class="kmap-table" style="${w ? "border-collapse:collapse;margin-bottom:0.5rem" : ""}"><tr><td class="kmap-axis" style="${w ? `${bd}${pd}${hc}` : ""}">${groupLabel(inputLabels.slice(0, rv))}\\${groupLabel(inputLabels.slice(rv, n))}</td>`;
+        let h = `<table class="kmap-table" style="${tableStyle}"><tr><th class="kmap-corner kmap-axis" rowspan="2" colspan="2" style="${headerStyle}">K-map</th><th class="kmap-column-group kmap-axis" colspan="${1 << cvn}" style="${headerStyle}">${columnGroupLabel}</th></tr><tr>`;
         for (let c = 0; c < 1 << cvn; c++)
-          h += `<td class="kmap-axis" style="${w ? `${bd}${pd}${hc}` : ""}">${bin(gy(c), cvn)}</td>`;
+          h += `<th class="kmap-axis" style="${axisStyle}">${bin(gy(c), cvn)}</th>`;
         h += "</tr>";
 
         for (let r = 0; r < 1 << rv; r++) {
-          h += `<tr><td class="kmap-axis" style="${w ? `${bd}${pd}${hc}` : ""}">${bin(gy(r), rv)}</td>`;
+          h += "<tr>";
+          if (r === 0)
+            h += `<th class="kmap-row-group kmap-axis" rowspan="${1 << rv}" style="${headerStyle}">${rowGroupLabel}</th>`;
+          h += `<th class="kmap-axis" style="${axisStyle}">${bin(gy(r), rv)}</th>`;
           for (let c = 0; c < 1 << cvn; c++) {
             const mt = (gy(r) << cvn) | gy(c),
               v = tt[mt][i];
-            const col = w
-              ? ""
-              : v === "1"
-                ? "background:#166534;color:#4ade80;font-weight:bold;"
-                : v === "X"
-                  ? "background:#854d0e;color:#facc15;"
-                  : "color:#64748b;";
             const valueClass =
               v === "1" ? "kmap-value-one" : v === "X" ? "kmap-value-x" : "";
-            h += `<td class="kmap-value ${valueClass}" style="${w ? `${bd}${pd}${col}` : ""}" title="m${mt}">${v}</td>`;
+            const cellStyle = w
+              ? `${bd}${pd}${v === "X" ? "background:#fff7df;color:#9c6a0a;font-weight:bold;" : valueStyle}`
+              : "";
+            h += `<td class="kmap-value ${valueClass}" style="${cellStyle}" title="m${mt}">${v === "0" ? "" : v}</td>`;
           }
           h += "</tr>";
         }
@@ -479,7 +489,8 @@ const $ = (id) => document.getElementById(id);
           const S = qm(on, dc),
             C = qm(off, dc);
           const outputLabel = outputLabels[i];
-          last.out.push({ S, C, on, dc });
+          const notation = outputNotations[i] || "min";
+          last.out.push({ S, C, on, off, dc });
 
           h += `<article class="result-card">
       <div class="result-heading">
@@ -491,7 +502,7 @@ const $ = (id) => document.getElementById(id);
           <button class="result-action custom-copy" onclick="window.openCustomCopyModal(${i})">Export</button>
         </div>
       </div>
-      <div class="term-summary"><span>Σm(<span class="grn">${on.join(", ") || "—"}</span>)</span><span>d(<span class="yel">${dc.join(", ") || "—"}</span>)</span></div>
+      <div class="term-summary"><span>${notation === "max" ? "ΠM" : "Σm"}(<span class="grn">${(notation === "max" ? off : on).join(", ") || "—"}</span>)</span><span>d(<span class="yel">${dc.join(", ") || "—"}</span>)</span></div>
       <div class="map-container">${kmap(i, false)}</div>
       <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel} = ${sopStr(S, n)}</code></div>
       <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel} = ${posStr(C, n)}</code></div>
@@ -560,11 +571,12 @@ const $ = (id) => document.getElementById(id);
         }
 
         const outData = last.out[outIdx];
+        const isMaxterm = outputNotations[outIdx] === "max";
         if (activeModalFormat === "word") {
           let html = `<h3>K-Map Analysis: ${outputLabels[outIdx]}</h3>`;
           if (incGrid) html += kmap(outIdx, true);
           if (incMinterms)
-            html += `<p><b>Minterms:</b> Σm(${outData.on.join(", ") || "—"}) <b>d:</b> (${outData.dc.join(", ") || "—"})</p>`;
+            html += `<p><b>${isMaxterm ? "Maxterms" : "Minterms"}:</b> ${isMaxterm ? "ΠM" : "Σm"}(${(isMaxterm ? outData.off : outData.on).join(", ") || "—"}) <b>d:</b> (${outData.dc.join(", ") || "—"})</p>`;
           if (incSOP)
             html += `<p><b>SOP Minimal:</b> ${outputLabels[outIdx]} = ${sopStr(outData.S, n)}</p>`;
           if (incPOS)
@@ -573,7 +585,7 @@ const $ = (id) => document.getElementById(id);
         } else {
           let txt = `=== K-Map ${outputLabels[outIdx]} ===\n`;
           if (incMinterms)
-            txt += `Sigma_m: ${outData.on.join(", ") || "none"} | d: ${outData.dc.join(", ") || "none"}\n`;
+            txt += `${isMaxterm ? "ΠM" : "Σm"}: ${(isMaxterm ? outData.off : outData.on).join(", ") || "none"} | d: ${outData.dc.join(", ") || "none"}\n`;
           if (incSOP)
             txt += `SOP: ${outputLabels[outIdx]} = ${sopStr(outData.S, n)}\n`;
           if (incPOS)
@@ -591,7 +603,121 @@ const $ = (id) => document.getElementById(id);
         toast(t);
       }
 
+      function parseCanonicalFormulas(txt) {
+        const formulaMarker = /[Σ∑Π∏π]|(?:sigma|sum|prod|pi)\s*[mM]/i;
+        if (!formulaMarker.test(txt)) return null;
+
+        const lines = txt.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const formulas = lines.map((line) => {
+          const match = line.match(
+            /^(?:[A-Za-z]\)\s*)?(?:([A-Za-z_][A-Za-z0-9_]{0,15})\s*(?:\(([^()]*)\))?\s*=\s*)?(Σ|∑|Π|∏|π|sigma|sum|prod|pi)\s*[mM]\s*\(([^()]*)\)\s*(?:\+\s*(?:d|dc)\s*\(([^()]*)\))?$/i,
+          );
+          if (!match) {
+            throw "Công thức không hợp lệ. Dùng dạng a) Σ m(1,3) hoặc a) Π M(0,2).";
+          }
+
+          const [, name, variableText, operator, termText, dontCareText = ""] = match;
+          const kind = /^(?:Σ|∑|sigma|sum)$/i.test(operator) ? "min" : "max";
+          const parseIndexes = (value) => {
+            if (!value.trim()) return [];
+            if (!/^\s*\d+(?:\s*(?:,|\s)\s*\d+)*\s*$/.test(value)) {
+              throw "Chỉ số minterm/maxterm phải là các số nguyên, phân tách bằng dấu phẩy.";
+            }
+            return value.trim().split(/[,\s]+/).map(Number);
+          };
+          const variables = variableText === undefined
+            ? null
+            : variableText.split(/[,\s]+/).filter(Boolean);
+
+          if (variables && (
+            !variables.length ||
+            variables.some((variable) => !/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(variable)) ||
+            new Set(variables.map((variable) => variable.toLowerCase())).size !== variables.length
+          )) {
+            throw "Tên biến không hợp lệ hoặc bị trùng trong danh sách đầu vào.";
+          }
+
+          return {
+            name,
+            variables,
+            kind,
+            indexes: parseIndexes(termText),
+            dontCares: parseIndexes(dontCareText),
+          };
+        });
+
+        const declaredVariables = formulas.find((formula) => formula.variables)?.variables;
+        const { n: currentN } = getSanitizedParams();
+        const n = declaredVariables
+          ? declaredVariables.length
+          : currentN;
+        const variables = declaredVariables || inputLabels.slice(0, n);
+        if (n < 1 || n > 8) {
+          throw "Số biến phải nằm trong khoảng 1–8.";
+        }
+        if (formulas.some((formula) =>
+          formula.variables && formula.variables.join(",").toLowerCase() !== variables.join(",").toLowerCase()
+        )) {
+          throw "Tất cả công thức phải dùng cùng danh sách biến theo cùng thứ tự.";
+        }
+        if (formulas.length > 16) {
+          throw "Có thể nhập tối đa 16 hàm đầu ra.";
+        }
+
+        const rowCount = 1 << n;
+        const outputNames = formulas.map((formula, index) => formula.name || `F${index + 1}`);
+        const allNames = [...variables, ...outputNames];
+        if (new Set(allNames.map((label) => label.toLowerCase())).size !== allNames.length) {
+          throw "Tên biến và tên hàm đầu ra phải duy nhất.";
+        }
+
+        const data = Array.from({ length: rowCount }, () => []);
+        formulas.forEach((formula, column) => {
+          const indexes = [...formula.indexes, ...formula.dontCares];
+          if (new Set(indexes).size !== indexes.length) {
+            throw "Chỉ số trong minterm/maxterm và don't-care không được trùng nhau.";
+          }
+          if (indexes.some((index) => !Number.isInteger(index) || index < 0 || index >= rowCount)) {
+            throw `Chỉ số phải nằm trong khoảng 0–${rowCount - 1}.`;
+          }
+
+          for (let row = 0; row < rowCount; row++) {
+            const isDontCare = formula.dontCares.includes(row);
+            const isListed = formula.indexes.includes(row);
+            data[row][column] = isDontCare
+              ? "X"
+              : (formula.kind === "min" ? isListed : !isListed) ? "1" : "0";
+          }
+        });
+
+        return { n, variables, outputNames, data, formulas };
+      }
+
       function applyPaste(txt, html) {
+        let formula;
+        try {
+          formula = parseCanonicalFormulas(txt || "");
+        } catch (error) {
+          pstMsg(error, 0);
+          return false;
+        }
+        if (formula) {
+          tt = formula.data;
+          inputLabels.splice(0, formula.n, ...formula.variables);
+          outputLabels.splice(0, formula.outputNames.length, ...formula.outputNames);
+          outputNotations.splice(
+            0,
+            formula.outputNames.length,
+            ...formula.formulas.map((item) => item.kind),
+          );
+          $("n").value = formula.n;
+          $("m").value = formula.outputNames.length;
+          buildTT();
+          solve();
+          pstMsg(`Đã cập nhật ${formula.outputNames.length} hàm từ công thức ${formula.n} biến`, 1);
+          return true;
+        }
+
         const norm = (c) => {
           c = String(c).trim().toUpperCase();
           return c === "0" || c === "1"
@@ -686,6 +812,7 @@ const $ = (id) => document.getElementById(id);
         }
 
         tt = data;
+        outputNotations.splice(0, m, ...Array(m).fill("min"));
         $("n").value = n;
         $("m").value = m;
         buildTT();
@@ -702,6 +829,21 @@ const $ = (id) => document.getElementById(id);
         applyPaste(cd.getData("text/plain"), cd.getData("text/html"));
       });
       $("pap").onclick = () => applyPaste($("pta").value, "");
+      const applyTermIndexes = () => {
+        const indexes = $("term-indexes").value.trim();
+        if (!indexes) {
+          pstMsg("Vui lòng nhập danh sách chỉ số.", 0);
+          return;
+        }
+        const operator = $("term-kind").value === "max" ? "ΠM" : "Σm";
+        const formula = `${operator}(${indexes})`;
+        $("pta").value = formula;
+        applyPaste(formula, "");
+      };
+      $("apply-term-indexes").addEventListener("click", applyTermIndexes);
+      $("term-indexes").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyTermIndexes();
+      });
 
       /* ---------- Integer Base Converter ---------- */
       function conv() {
