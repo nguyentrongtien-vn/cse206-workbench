@@ -167,9 +167,33 @@
                 <div>
                   <span class="panel-kicker">INPUT MATRIX</span>
                   <h2>Bảng chân trị</h2>
-                  <span class="header-edit-hint">Nhấn vào nhãn cột để tùy chỉnh · Chữ, số, _</span>
+                  <span class="header-edit-hint">Sửa trực tiếp nhãn ở đầu cột · Chữ, số, _</span>
                 </div>
                 <span class="panel-meta" id="kmap-summary">16 hàng</span>
+              </div>
+              <div class="label-preset-toolbar" aria-label="Tùy chỉnh nhãn bảng chân trị">
+                <div class="label-series-group">
+                  <label class="label-preset-field">
+                    <span>Nhãn đầu vào · theo thứ tự cột</span>
+                    <input id="input-label-series" type="text" autocomplete="off" spellcheck="false"
+                      aria-label="Danh sách nhãn biến đầu vào"
+                      placeholder="Ví dụ: A1, B1, C1" />
+                  </label>
+                  <button class="btn secondary-btn label-preset-apply" id="apply-input-labels" type="button">
+                    Áp dụng
+                  </button>
+                </div>
+                <div class="label-series-group">
+                  <label class="label-preset-field">
+                    <span>Nhãn đầu ra · theo thứ tự cột</span>
+                    <input id="output-label-series" type="text" autocomplete="off" spellcheck="false"
+                      aria-label="Danh sách nhãn đầu ra"
+                      placeholder="Ví dụ: F1, F2 hoặc A1, B1" />
+                  </label>
+                  <button class="btn secondary-btn label-preset-apply" id="apply-output-labels" type="button">
+                    Áp dụng
+                  </button>
+                </div>
               </div>
               <div id="tt" class="table-container"></div>
             </section>

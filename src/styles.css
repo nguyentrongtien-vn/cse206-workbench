@@ -702,6 +702,49 @@ input[type="number"] {
   box-shadow: none;
 }
 
+.label-preset-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 12px;
+  margin: -3px 0 14px;
+}
+
+.label-series-group {
+  display: flex;
+  align-items: end;
+  min-width: 0;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+  background: #fafbfe;
+}
+
+.label-preset-field {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 5px;
+  color: #78839a;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.label-preset-field input {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.73rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.label-preset-apply {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.7rem;
+}
+
 .table-panel {
   overflow: hidden;
 }
@@ -1464,6 +1507,14 @@ table.t th {
   .result-card > .map-container {
     justify-self: center;
     max-width: 100%;
+  }
+
+  .label-preset-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .label-series-group {
+    padding: 8px;
   }
 }
 

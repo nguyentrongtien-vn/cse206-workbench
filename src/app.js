@@ -93,6 +93,49 @@ const $ = (id) => document.getElementById(id);
         return { n, m };
       }
 
+      function applyLabelSeries(type) {
+        const { n, m } = getSanitizedParams();
+        const isInput = type === "input";
+        const count = isInput ? n : m;
+        const labels = isInput ? inputLabels : outputLabels;
+        const seriesInput = $(isInput ? "input-label-series" : "output-label-series");
+        const nextLabels = seriesInput.value.split(",").map((label) => label.trim());
+
+        const otherLabels = isInput
+          ? outputLabels.slice(0, m)
+          : inputLabels.slice(0, n);
+        const allLabels = [...nextLabels, ...otherLabels];
+        if (nextLabels.length !== count) {
+          toast(`Cần nhập đúng ${count} nhãn, phân tách bằng dấu phẩy.`);
+          return;
+        }
+        if (
+          allLabels.some((label) => !/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(label)) ||
+          new Set(allLabels.map((label) => label.toLowerCase())).size !== allLabels.length
+        ) {
+          toast("Nhãn không hợp lệ hoặc bị trùng. Dùng chữ/số/_ và đảm bảo các nhãn duy nhất.");
+          return;
+        }
+
+        labels.splice(0, count, ...nextLabels);
+        buildTT();
+        solve();
+        toast(isInput ? "Đã cập nhật nhãn biến." : "Đã cập nhật nhãn đầu ra.");
+      }
+
+      $("apply-input-labels").addEventListener("click", () =>
+        applyLabelSeries("input"),
+      );
+      $("apply-output-labels").addEventListener("click", () =>
+        applyLabelSeries("output"),
+      );
+      $("input-label-series").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyLabelSeries("input");
+      });
+      $("output-label-series").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyLabelSeries("output");
+      });
+
       // Tool navigation
       document.querySelectorAll(".nav").forEach(
         (t) =>
@@ -179,6 +222,8 @@ const $ = (id) => document.getElementById(id);
         }
         $("tt").innerHTML = h + "</table>";
         $("kmap-summary").textContent = `${R} hàng · ${n} biến · ${m} đầu ra`;
+        $("input-label-series").value = inputLabels.slice(0, n).join(", ");
+        $("output-label-series").value = outputLabels.slice(0, m).join(", ");
       }
 
       $("tt").addEventListener("change", (e) => {
@@ -223,8 +268,42 @@ const $ = (id) => document.getElementById(id);
             inputLabels[s.dataset.labelIndex] = label;
           else outputLabels[s.dataset.labelIndex] = label;
           s.value = label;
+          $("input-label-series").value = inputLabels
+            .slice(0, n)
+            .join(", ");
+          $("output-label-series").value = outputLabels
+            .slice(0, m)
+            .join(", ");
           solve();
         }
+      });
+
+      $("tt").addEventListener("input", (e) => {
+        const s = e.target;
+        if (!s.dataset.labelType) return;
+
+        const label = s.value.trim();
+        if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(label)) return;
+        const { n, m } = getSanitizedParams();
+        const labels = [
+          ...inputLabels.slice(0, n),
+          ...outputLabels.slice(0, m),
+        ];
+        const currentIndex =
+          s.dataset.labelType === "input"
+            ? Number(s.dataset.labelIndex)
+            : n + Number(s.dataset.labelIndex);
+        const otherLabels = labels.filter((_, i) => i !== currentIndex);
+        if (otherLabels.some((other) => other.toLowerCase() === label.toLowerCase())) {
+          return;
+        }
+
+        if (s.dataset.labelType === "input")
+          inputLabels[s.dataset.labelIndex] = label;
+        else outputLabels[s.dataset.labelIndex] = label;
+        $("input-label-series").value = inputLabels.slice(0, n).join(", ");
+        $("output-label-series").value = outputLabels.slice(0, m).join(", ");
+        solve();
       });
 
       $("n").onchange = $("m").onchange = () => {
