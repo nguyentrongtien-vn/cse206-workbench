@@ -1467,6 +1467,25 @@ table.t th {
   gap: 18px;
 }
 
+.bdf-port-names {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.bdf-port-names input {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+.bdf-port-names > small {
+  grid-column: 1 / -1;
+  color: #929cb0;
+  font-size: 0.65rem;
+}
+
 .copy-options {
   display: grid;
   gap: 2px;
@@ -2009,6 +2028,10 @@ table.t th {
   .bdf-format-options {
     grid-template-columns: minmax(0, 1fr);
     gap: 7px;
+  }
+
+  .bdf-port-names {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .bdf-choice-card {

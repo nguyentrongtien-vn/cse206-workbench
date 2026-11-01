@@ -99,32 +99,28 @@
       }
     });
 
-    $("tt").addEventListener("input", (e) => {
+    $("tt").addEventListener("keydown", (e) => {
       const s = e.target;
       if (!s.dataset.labelType) return;
 
-      const label = s.value.trim();
-      if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(label)) return;
-      const { n, m } = getSanitizedParams();
-      const labels = [
-        ...inputLabels.slice(0, n),
-        ...outputLabels.slice(0, m),
-      ];
-      const currentIndex =
-        s.dataset.labelType === "input"
-          ? Number(s.dataset.labelIndex)
-          : n + Number(s.dataset.labelIndex);
-      const otherLabels = labels.filter((_, i) => i !== currentIndex);
-      if (otherLabels.some((other) => other.toLowerCase() === label.toLowerCase())) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        s.value =
+          s.dataset.labelType === "input"
+            ? inputLabels[s.dataset.labelIndex]
+            : outputLabels[s.dataset.labelIndex];
+        s.blur();
         return;
       }
 
-      if (s.dataset.labelType === "input")
-        inputLabels[s.dataset.labelIndex] = label;
-      else outputLabels[s.dataset.labelIndex] = label;
-      $("input-label-series").value = inputLabels.slice(0, n).join(", ");
-      $("output-label-series").value = outputLabels.slice(0, m).join(", ");
-      solve();
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+
+      const labelFields = [...$("tt").querySelectorAll(".column-label")];
+      const currentIndex = labelFields.indexOf(s);
+      const nextIndex = currentIndex + (e.shiftKey ? -1 : 1);
+      s.blur();
+      labelFields[nextIndex]?.focus();
     });
 
     $("copy-truth-table").addEventListener("click", () => {
@@ -144,7 +140,7 @@
       solve();
     };
 
-    function qmTrace(on, dc, collectSteps = true) {
+    function qmTrace(on, dc, collectSteps = true, n = 0) {
       if (!on.length) {
         return {
           target: on,
@@ -222,61 +218,118 @@
 
       const covers = (implicant, term) =>
         (term & ~implicant.m) === implicant.v;
-      const uncovered = new Set(on);
-      const selected = [];
-      const selections = collectSteps ? [] : null;
-      on.forEach((term) => {
-        const candidates = primes.filter((prime) => covers(prime, term));
-        if (candidates.length === 1 && !selected.includes(candidates[0])) {
-          const prime = candidates[0];
-          selected.push(prime);
-          if (selections) {
-            selections.push({
-              prime,
-              reason: `Ô ${term} chỉ được phủ bởi implicant này`,
-              covered: on.filter((item) => covers(prime, item)),
-            });
-          }
-        }
-      });
-      selected.forEach((prime) =>
-        on.forEach((term) => covers(prime, term) && uncovered.delete(term)),
+      const uniquePrimes = [...new Map(
+        primes.map((prime) => [`${prime.v},${prime.m}`, prime]),
+      ).values()];
+      const primeCoverMap = new Map(
+        uniquePrimes.map((prime) => [
+          prime,
+          new Set(on.filter((term) => covers(prime, term))),
+        ]),
       );
 
-      while (uncovered.size) {
-        let best = null;
-        let bestCount = -1;
-        primes.forEach((prime) => {
-          const count = [...uncovered].filter((term) =>
-            covers(prime, term),
-          ).length;
-          if (count > bestCount) {
-            bestCount = count;
-            best = prime;
+      const comparePrimes = (left, right) => {
+        const leftLits = left.reduce((sum, prime) => sum + lits(prime, n).length, 0);
+        const rightLits = right.reduce((sum, prime) => sum + lits(prime, n).length, 0);
+        if (left.length !== right.length) return left.length - right.length;
+        if (leftLits !== rightLits) return leftLits - rightLits;
+        return left
+          .map((prime) => `${prime.v},${prime.m}`)
+          .sort()
+          .join("|")
+          .localeCompare(
+            right.map((prime) => `${prime.v},${prime.m}`).sort().join("|"),
+          );
+      };
+
+      let bestSelection = [];
+      const solveCover = (remainingTerms, availablePrimes, chosen = []) => {
+        if (!remainingTerms.size) {
+          const candidate = [...chosen].sort((a, b) => a.v - b.v || a.m - b.m);
+          if (!bestSelection.length || comparePrimes(candidate, bestSelection) < 0) {
+            bestSelection = candidate;
+          }
+          return;
+        }
+
+        if (bestSelection.length && chosen.length >= bestSelection.length) {
+          return;
+        }
+
+        const target = [...remainingTerms].sort((a, b) => {
+          const left = availablePrimes.filter((prime) => primeCoverMap.get(prime)?.has(a)).length;
+          const right = availablePrimes.filter((prime) => primeCoverMap.get(prime)?.has(b)).length;
+          if (left !== right) return right - left;
+          return a - b;
+        })[0];
+
+        const candidates = availablePrimes.filter((prime) =>
+          primeCoverMap.get(prime)?.has(target),
+        );
+        if (!candidates.length) return;
+
+        candidates
+          .sort((a, b) => {
+            const left = [...remainingTerms].filter((term) => primeCoverMap.get(a)?.has(term)).length;
+            const right = [...remainingTerms].filter((term) => primeCoverMap.get(b)?.has(term)).length;
+            if (left !== right) return right - left;
+            return lits(a, n).length - lits(b, n).length;
+          })
+          .forEach((prime) => {
+            const nextRemaining = new Set(
+              [...remainingTerms].filter((term) => !primeCoverMap.get(prime)?.has(term)),
+            );
+            solveCover(
+              nextRemaining,
+              availablePrimes.filter((candidate) => candidate !== prime),
+              [...chosen, prime],
+            );
+          });
+      };
+
+      if (on.length) {
+        solveCover(new Set(on), uniquePrimes);
+      }
+
+      const selected = bestSelection.length ? bestSelection : [];
+      if (collectSteps) {
+        const uncovered = new Set(on);
+        selected.forEach((prime) =>
+          on.forEach((term) => covers(prime, term) && uncovered.delete(term)),
+        );
+        const selections = [];
+        selected.forEach((prime) => {
+          const covered = on.filter((term) => covers(prime, term));
+          if (covered.length) {
+            selections.push({
+              prime,
+              reason: `Phủ các ô ${covered.join(", ")}`,
+              covered,
+            });
           }
         });
-        if (!best) break;
-
-        const newlyCovered = [...uncovered].filter((term) =>
-          covers(best, term),
-        );
-        selected.push(best);
-        if (selections) {
+        if (uncovered.size) {
           selections.push({
-            prime: best,
-            reason: `Phủ thêm các ô ${newlyCovered.join(", ")}`,
-            covered: on.filter((term) => covers(best, term)),
+            prime: null,
+            reason: `Chưa phủ ${[...uncovered].join(", ")}`,
+            covered: [...uncovered],
           });
         }
-        newlyCovered.forEach((term) => uncovered.delete(term));
+        return {
+          target: on,
+          rounds: rounds || [],
+          primes: uniquePrimes,
+          selected,
+          selections,
+        };
       }
 
       return {
         target: on,
         rounds: rounds || [],
-        primes,
+        primes: uniquePrimes,
         selected,
-        selections: selections || [],
+        selections: [],
       };
     }
 
@@ -457,8 +510,8 @@
           const v = state.tt[r][i];
           (v === "1" ? on : v === "X" ? dc : off).push(r);
         }
-        const sopTrace = qmTrace(on, dc, false);
-        const posTrace = qmTrace(off, dc, false);
+        const sopTrace = qmTrace(on, dc, false, n);
+        const posTrace = qmTrace(off, dc, false, n);
         const S = sopTrace.selected;
         const C = posTrace.selected;
         const outputLabel = outputLabels[i];

@@ -10,14 +10,22 @@
     toast(t);
   }
 
-  function parseCanonicalFormulas(txt) {
-    const formulaMarker = /[Σ∑Π∏π]|(?:sigma|sum|prod|pi)\s*[mM]/i;
-    if (!formulaMarker.test(txt)) return null;
+  function normalizeSigmaPi(value) {
+    return value
+      .replace(/[Σσ∑]/g, "sum")
+      .replace(/[Ππ∏]/g, "prod");
+  }
 
-    const lines = txt.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  function parseCanonicalFormulas(txt) {
+    const normalizedText = normalizeSigmaPi(txt || "");
+    const formulaMarker = /(?:sigma|sum|prod|pi)\s*[mM]/i;
+    if (!formulaMarker.test(normalizedText)) return null;
+
+    const lines = normalizedText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
     const formulas = lines.map((line) => {
-      const match = line.match(
-        /^(?:[A-Za-z]\)\s*)?(?:([A-Za-z_][A-Za-z0-9_]{0,15})\s*(?:\(([^()]*)\))?\s*=\s*)?(Σ|∑|Π|∏|π|sigma|sum|prod|pi)\s*[mM]\s*\(([^()]*)\)\s*(?:\+\s*(?:d|dc)\s*\(([^()]*)\))?$/i,
+      const normalizedLine = normalizeSigmaPi(line);
+      const match = normalizedLine.match(
+        /^(?:[A-Za-z]\)\s*)?(?:([A-Za-z_][A-Za-z0-9_]{0,15})\s*(?:\(([^()]*)\))?\s*=\s*)?(sum|prod|sigma|pi)\s*[mM]\s*\(([^()]*)\)\s*(?:\+\s*(?:d|dc)\s*\(([^()]*)\))?$/i,
       );
       if (!match) {
         throw "Công thức không hợp lệ. Dùng dạng a) Σ m(1,3) hoặc a) Π M(0,2).";

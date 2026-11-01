@@ -20,34 +20,40 @@
         (port) => `(port
     (pt 0 ${port.y})
     (input)
-    (text "${port.name}" (rect 2 ${port.y - 7} 19 ${port.y + 5})(font "Courier New" (bold))(invisible))
-    (line (pt 0 ${port.y})(pt ${type === "NOT" ? 13 : 14} ${port.y})(line_width 1))
+    (text "${port.name}" (rect 2 ${port.y - 9} 19 ${port.y + 3})(font "Courier New" (bold))(invisible))
+    (text "${port.name}" (rect 2 ${port.y - 9} 19 ${port.y + 3})(font "Courier New" (bold))(invisible))
+    (line (pt 0 ${port.y})(pt ${type === "NOT" ? 13 : isAnd ? 14 : 15} ${port.y}))
   )`,
       )
       .join("\n  ");
     const outputY = type === "NOT" ? 16 : 24;
-    const outputLineStart = type === "NOT"
-      ? width - 9
-      : isInverting
-        ? width - 7
-        : width - 12;
+    const outputLineStart = {
+      NOT: 39,
+      AND2: 42,
+      NAND2: 57,
+      OR2: 48,
+      NOR2: 57,
+      XOR: 49,
+      XNOR: 57,
+    }[type];
     const outputPort = `(port
     (pt ${width} ${outputY})
     (output)
     (text "OUT" (rect ${width - 16} ${outputY - 9} ${width + 1} ${outputY + 3})(font "Courier New" (bold))(invisible))
-    (line (pt ${outputLineStart} ${outputY})(pt ${width} ${outputY})(line_width 1))
+    (text "OUT" (rect ${width - 16} ${outputY - 9} ${width + 1} ${outputY + 3})(font "Courier New" (bold))(invisible))
+    (line (pt ${outputLineStart} ${outputY})(pt ${width} ${outputY}))
   )`;
-    const notDrawing = `(line (pt 13 25)(pt 13 7)(line_width 1))
-    (line (pt 13 7)(pt 31 16)(line_width 1))
-    (line (pt 13 25)(pt 31 16)(line_width 1))
-    (circle (rect 31 12 39 20)(line_width 1))`;
-    const andDrawing = `(line (pt 14 12)(pt 30 12)(line_width 1))
-    (line (pt 14 37)(pt 31 37)(line_width 1))
-    (line (pt 14 12)(pt 14 37)(line_width 1))
-    (arc (pt 31 37)(pt 30 12)(rect 18 12 43 37)(line_width 1))`
+    const notDrawing = `(line (pt 13 25)(pt 13 7))
+    (line (pt 13 7)(pt 31 16))
+    (line (pt 13 25)(pt 31 16))
+    (circle (rect 31 12 39 20))`;
+    const andDrawing = `(line (pt 14 12)(pt 30 12))
+    (line (pt 14 37)(pt 31 37))
+    (line (pt 14 12)(pt 14 37))
+    (arc (pt 31 37)(pt 30 12)(rect 18 12 43 37))`
       + (type === "NAND2"
-        ? `\n    (circle (rect 49 20 57 28)(line_width 1))
-    (line (pt 57 24)(pt 64 24)(line_width 1))`
+        ? `\n    (circle (rect 49 20 57 28))
+    (line (pt 57 24)(pt 64 24))`
         : "");
     const orDrawing = `(line (pt 12 16)(pt 23 16))
     (line (pt 12 32)(pt 23 32))
@@ -56,10 +62,10 @@
     (arc (pt 25 35)(pt 49 24)(rect -6 -27 57 36))
     (line (pt ${isInverting ? 57 : 52} 24)(pt 64 24))`
       + (isXor
-        ? `\n    (arc (pt 0 29)(pt 0 19)(rect -21 8 12 41))`
+        ? `\n    (arc (pt 8 36)(pt 8 12)(rect -21 7 14 42))`
         : "")
       + (type === "NOR2" || type === "XNOR"
-        ? `\n    (circle (rect 49 20 57 28)(line_width 1))`
+        ? `\n    (circle (rect 49 20 57 28))`
         : "");
     const drawing = type === "NOT"
       ? notDrawing
@@ -88,19 +94,19 @@
             ? `(rect 5 0 ${Math.min(width - 4, name.length * 8 + 5)} 10)`
             : `(rect 90 0 ${Math.min(width - 8, 90 + name.length * 8)} 10)`;
           const drawing = isInput
-            ? `(line (pt 84 12)(pt 109 12)(line_width 1))
-    (line (pt 84 4)(pt 109 4)(line_width 1))
-    (line (pt 113 8)(pt 168 8)(line_width 1))
-    (line (pt 84 12)(pt 84 4)(line_width 1))
-    (line (pt 109 4)(pt 113 8)(line_width 1))
-    (line (pt 109 12)(pt 113 8)(line_width 1))`
-            : `(line (pt 0 8)(pt 52 8)(line_width 1))
-    (line (pt 52 4)(pt 78 4)(line_width 1))
-    (line (pt 52 12)(pt 78 12)(line_width 1))
-    (line (pt 52 12)(pt 52 4)(line_width 1))
-    (line (pt 78 4)(pt 82 8)(line_width 1))
-    (line (pt 82 8)(pt 78 12)(line_width 1))
-    (line (pt 78 12)(pt 82 8)(line_width 1))`;
+            ? `(line (pt 84 12)(pt 109 12))
+    (line (pt 84 4)(pt 109 4))
+    (line (pt 113 8)(pt 168 8))
+    (line (pt 84 12)(pt 84 4))
+    (line (pt 109 4)(pt 113 8))
+    (line (pt 109 12)(pt 113 8))`
+            : `(line (pt 0 8)(pt 52 8))
+    (line (pt 52 4)(pt 78 4))
+    (line (pt 52 12)(pt 78 12))
+    (line (pt 52 12)(pt 52 4))
+    (line (pt 78 4)(pt 82 8))
+    (line (pt 82 8)(pt 78 12))
+    (line (pt 78 12)(pt 82 8))`;
           return `(pin
   (${type})
   (rect ${x} ${y} ${x + width} ${y + 16})
@@ -110,8 +116,48 @@
   (drawing
     ${drawing}
   )
-  (annotation_block (location)(rect ${isInput ? x - 56 : x + width + 8} ${isInput ? y + 16 : y} ${isInput ? x : x + width + 72} ${isInput ? y + 32 : y + 16}))
+  ${isInput ? `(text "VCC" (rect 128 7 148 17)(font "Arial" (font_size 6)))` : ""}
 )`;
+        }
+
+        function getQuartusBdfInputBus(names) {
+          if (names.length < 2) return null;
+          const parsed = names.map((name) => {
+            const bracketed = /^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/.exec(name);
+            if (bracketed) {
+              return {
+                base: bracketed[1],
+                index: Number(bracketed[2]),
+                style: "bracketed",
+              };
+            }
+            const suffixed = /^([A-Za-z_][A-Za-z0-9_]*?)(\d+)$/.exec(name);
+            return suffixed
+              ? {
+                  base: suffixed[1],
+                  index: Number(suffixed[2]),
+                  style: "suffixed",
+                }
+              : null;
+          });
+          if (parsed.some((entry) => !entry)) return null;
+          const { base, style } = parsed[0];
+          if (parsed.some((entry) => entry.base !== base || entry.style !== style)) {
+            return null;
+          }
+          const indexes = parsed.map((entry) => entry.index);
+          const min = Math.min(...indexes);
+          const max = Math.max(...indexes);
+          if (
+            max - min + 1 !== indexes.length ||
+            new Set(indexes).size !== indexes.length
+          ) {
+            return null;
+          }
+          return {
+            label: `${base}[${min}..${max}]`,
+            bitNames: indexes.map((index) => `${base}[${index}]`),
+          };
         }
 
         function getQuartusBdfTerms(outIdx, format) {
@@ -121,6 +167,41 @@
           const output = state.last?.out[outIdx];
           if (!output) return null;
           return format === "sop" ? output.S : output.C;
+        }
+
+        function getQuartusBdfExpression(outIdx, format) {
+          const { n } = state.last;
+          const parity = getQuartusBdfParity(outIdx);
+          if (parity) {
+            const expression = parity.inputIndexes
+              .map((index) => inputLabels[index])
+              .join(" ^ ");
+            return parity.inversion ? `(${expression})'` : expression;
+          }
+          const terms = getQuartusBdfTerms(outIdx, format);
+          return format === "sop"
+            ? sopStr(terms, n)
+            : posStr(terms, n);
+        }
+
+        function getQuartusBdfOutputGroup(outIdx) {
+          const outputNames = outputLabels.slice(0, state.last.m);
+          const matching = window.CSE206.bdfExport
+            .groupBuses(outputNames)
+            .find((unit) =>
+              unit.prefix && unit.bits.some((bit) => bit.position === outIdx),
+            );
+          return matching
+            ? {
+                indices: matching.bits.map((bit) => bit.position),
+                label: matching.label,
+                fileName: matching.prefix,
+              }
+            : {
+                indices: [outIdx],
+                label: outputLabels[outIdx],
+                fileName: outputLabels[outIdx],
+              };
         }
 
         function quartusBdfLiteralIndexes(terms, n, format) {
@@ -173,28 +254,19 @@
         }
 
         function estimateQuartusBdfGateCount(outIdx, format) {
-          const { n } = state.last;
-          const terms = getQuartusBdfTerms(outIdx, format);
-          if (!terms) return null;
-          const parity = getQuartusBdfParity(outIdx);
-          if (parity) return parity.inputIndexes.length - 1;
-          const literalCounts = terms.map(
-            (term) => n - bitCount(term.m),
-          );
-          const negative = quartusBdfLiteralIndexes(terms, n, format);
-          if (!terms.length || literalCounts.includes(0)) negative.add(0);
-          const complementaryTerms = terms.length === 2 &&
-            literalCounts.every((literals) => literals === 2);
-          const termGates = literalCounts.reduce(
-            (count, literals) =>
-              count +
-              (literals
-                ? (literals - 1) * (complementaryTerms ? 1 : 2)
-                : 1),
-            0,
-          );
-          return negative.size + termGates + Math.max(0, terms.length - 1) +
-            (terms.length ? 0 : 1);
+          if (!state.last || !state.last.out[outIdx]) return null;
+          const group = getQuartusBdfOutputGroup(outIdx);
+          const inputNames = inputLabels.slice(0, state.last.n);
+          const count = (memberFormat) =>
+            window.CSE206.bdfExport.countMany(
+              group.indices.map((index) => ({
+                output: outputLabels[index],
+                source: getQuartusBdfExpression(index, memberFormat),
+              })),
+              inputNames,
+            );
+          if (format !== "auto") return count(format);
+          return Math.min(count("sop"), count("pos"));
         }
 
         function resolveQuartusBdfFormat(outIdx, requestedFormat) {
@@ -210,20 +282,22 @@
         }
 
         function verifyQuartusBdfOutput(outIdx, format) {
-          const terms = getQuartusBdfTerms(outIdx, format);
-          if (!terms) return false;
-          const { n } = state.last;
-          const rowCount = 1 << n;
-
-          for (let row = 0; row < rowCount; row++) {
-            const actual = format === "sop"
-              ? terms.some((term) => (row & ~term.m) === term.v)
-              : !terms.some((term) => (row & ~term.m) === term.v);
-            const expected = state.tt[row][outIdx];
-            if (expected !== "X" && Number(actual) !== Number(expected)) {
-              throw new Error(
-                `BDF ${format.toUpperCase()} không khớp bảng chân trị tại hàng ${row}.`,
-              );
+          const group = getQuartusBdfOutputGroup(outIdx);
+          for (const index of group.indices) {
+            const terms = getQuartusBdfTerms(index, format);
+            if (!terms) return false;
+            const { n } = state.last;
+            const rowCount = 1 << n;
+            for (let row = 0; row < rowCount; row++) {
+              const actual = format === "sop"
+                ? terms.some((term) => (row & ~term.m) === term.v)
+                : !terms.some((term) => (row & ~term.m) === term.v);
+              const expected = state.tt[row][index];
+              if (expected !== "X" && Number(actual) !== Number(expected)) {
+                throw new Error(
+                  `BDF ${format.toUpperCase()} không khớp bảng chân trị tại hàng ${row} (${outputLabels[index]}).`,
+                );
+              }
             }
           }
           return true;
@@ -238,7 +312,7 @@
           return count;
         }
 
-        function generateQuartusBdf(outIdx, format) {
+        function generateQuartusBdfLegacy(outIdx, format) {
           if (!state.last || !state.last.out[outIdx]) return null;
           const { n } = state.last;
           const isSop = format === "sop";
@@ -251,10 +325,14 @@
           const pinWidth = 168;
           const inputX = 32;
           const inputY = (index) => 64 + index * 80;
+          const inputBus = getQuartusBdfInputBus(inputLabels.slice(0, n));
+          const logicOffsetX = inputBus ? 48 : 0;
+          const busX = inputX + pinWidth + 24;
+          const inputSignalX = inputBus ? busX + 72 : inputX + pinWidth;
           const inputSignals = inputLabels.slice(0, n).map((name, index) => ({
-            x: inputX + pinWidth,
+            x: inputSignalX,
             y: inputY(index) + 8,
-            name,
+            name: inputBus ? inputBus.bitNames[index] : name,
           }));
           const usedNegative = parityInversion === null
             ? quartusBdfLiteralIndexes(implicants, n, format)
@@ -285,6 +363,32 @@
   (pt ${to.x} ${to.y})
 )`);
             }
+          }
+
+          if (inputBus) {
+            connectors.push(`(connector
+  (pt ${inputX + pinWidth} ${inputSignals[0].y})
+  (pt ${busX} ${inputSignals[0].y})
+  (bus)
+)`);
+            for (let index = 0; index < inputSignals.length - 1; index++) {
+              const signal = inputSignals[index];
+              const nextSignal = inputSignals[index + 1];
+              connectors.push(`(connector
+  (pt ${busX} ${signal.y})
+  (pt ${busX} ${nextSignal.y})
+  (bus)
+)`);
+            }
+            inputSignals.forEach((signal) => {
+              const labelWidth = Math.max(40, signal.name.length * 8);
+              connectors.push(`(connector
+  (text "${signal.name}" (rect ${busX + 24} ${signal.y - 16} ${busX + 24 + labelWidth} ${signal.y + 1})(font "Intel Clear" ))
+  (pt ${busX} ${signal.y})
+  (pt ${signal.x} ${signal.y})
+)`);
+              connectors.push(`(junction (pt ${busX} ${signal.y}))`);
+            });
           }
 
           function addGate(type, x, centerY, left, right = null) {
@@ -327,7 +431,7 @@
               const source = inputSignals[index];
               negativeSignals.set(
                 index,
-                addGate("NOT", 248, source.y + 32, source),
+                addGate("NOT", 248 + logicOffsetX, source.y + 32, source),
               );
             }
             return negativeSignals.get(index);
@@ -339,7 +443,7 @@
             const inverse = getNegativeSignal(0);
             return addGate(
               value ? "XOR" : "XNOR",
-              352,
+              352 + logicOffsetX,
               centerY,
               source,
               inverse,
@@ -370,7 +474,7 @@
               const nextInput = parityInputs[index];
               current = addGate(
                 index === 1 && parityInversion.inversion ? "XNOR" : "XOR",
-                352 + (index - 1) * 112,
+                352 + logicOffsetX + (index - 1) * 112,
                 (current.y + nextInput.y) / 2,
                 current,
                 nextInput,
@@ -415,7 +519,7 @@
                   const right = current[index + 1];
                   const lane = termIndex * 96;
                   const centerY = (left.y + right.y) / 2 + lane;
-                  const gateX = 352 + layer * 224;
+                  const gateX = 352 + logicOffsetX + layer * 224;
                   const complemented = addGate(
                     termGate,
                     gateX,
@@ -465,7 +569,7 @@
               next.push(
                 addGate(
                   finalGate,
-                  352 + outputLayer * 112,
+                  352 + logicOffsetX + outputLayer * 112,
                   (left.y + right.y) / 2,
                   left,
                   right,
@@ -519,11 +623,13 @@
           const outputPinY = outputSignal.y - 8;
           addWire(outputSignal, { x: outputPinX, y: outputSignal.y });
 
-          const pins = inputLabels
-            .slice(0, n)
-            .map((name, index) =>
-              quartusBdfPin("input", name, inputX, inputY(index)),
-            );
+          const pins = inputBus
+            ? [quartusBdfPin("input", inputBus.label, inputX, inputY(0))]
+            : inputLabels
+                .slice(0, n)
+                .map((name, index) =>
+                  quartusBdfPin("input", name, inputX, inputY(index)),
+                );
           pins.push(
             quartusBdfPin(
               "output",
@@ -539,13 +645,61 @@
             );
           }
           return [
-            '/* Quartus Prime Block Diagram File */',
+            '/*',
+            'WARNING: Do NOT edit the input and output ports in this file in a text',
+            'editor if you plan to continue editing the block that represents it in',
+            'the Block Editor! File corruption is VERY likely to occur.',
+            '*/',
             '(header "graphic" (version "1.4"))',
             ...pins,
             ...symbols,
             ...connectors,
             "",
-          ].join("\n");
+          ].join("\n").replace(/\n/g, "\r\n");
+        }
+
+        function parseBdfBusName(fieldId, label) {
+          const name = $(fieldId).value.trim();
+          if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(name)) {
+            throw new Error(
+              `Tên bus ${label} không hợp lệ. Dùng chữ, số hoặc _ (tối đa 16 ký tự).`,
+            );
+          }
+          return name;
+        }
+
+        function inferBdfBusName(names) {
+          const matches = names.map((name) =>
+            /^([A-Za-z_][A-Za-z0-9_]*?)(?:0|[1-9]\d*)$/.exec(name),
+          );
+          if (matches.every(Boolean) && matches.every((match) => match[1] === matches[0][1])) {
+            return matches[0][1];
+          }
+          return names[0];
+        }
+
+        function setBdfPortNameDefaults(outIdx) {
+          const group = getQuartusBdfOutputGroup(outIdx);
+          $("bdf-input-names").value = inferBdfBusName(
+            inputLabels.slice(0, state.last.n),
+          );
+          $("bdf-output-names").value = inferBdfBusName(
+            group.indices.map((index) => outputLabels[index]),
+          );
+        }
+
+        function generateQuartusBdf(outIdx, format, portNames) {
+          const group = getQuartusBdfOutputGroup(outIdx);
+          const functions = group.indices.map((index) => ({
+            source: getQuartusBdfExpression(index, format),
+            output: outputLabels[index],
+            expectedRows: state.tt.map((row) => row[index]),
+          }));
+          return window.CSE206.bdfExport.generateMany(
+            functions,
+            inputLabels.slice(0, state.last.n),
+            portNames,
+          );
         }
 
         function updateBdfFormatSummary() {
@@ -580,14 +734,25 @@
             return;
           }
           try {
+            if ($("copy-modal").classList.contains("hidden")) {
+              setBdfPortNameDefaults(outIdx);
+            }
             const format = resolveQuartusBdfFormat(outIdx, requestedFormat);
+            const portNames = {
+              inputBus: parseBdfBusName("bdf-input-names", "input"),
+              outputBus: parseBdfBusName("bdf-output-names", "output"),
+            };
+            if (portNames.inputBus.toLowerCase() === portNames.outputBus.toLowerCase()) {
+              throw new Error("Tên bus input và output BDF phải khác nhau.");
+            }
             verifyQuartusBdfOutput(outIdx, format);
-            const content = generateQuartusBdf(outIdx, format);
-            if (!content) {
+            const generated = generateQuartusBdf(outIdx, format, portNames);
+            if (!generated?.content) {
               toast("Không tạo được nội dung BDF.");
               return;
             }
-            const fileName = `${outputLabels[outIdx]}.bdf`;
+            const { content, gateCount } = generated;
+            const fileName = `${portNames.outputBus}.bdf`;
             const url = URL.createObjectURL(
               new Blob([content], { type: "text/plain;charset=utf-8" }),
             );
@@ -599,7 +764,7 @@
             link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
             $("copy-modal").classList.add("hidden");
-            toast(`Đã xuất ${fileName} · ${format.toUpperCase()} · ${estimateQuartusBdfGateCount(outIdx, format)} cổng`);
+            toast(`Đã xuất ${fileName} · ${format.toUpperCase()} · ${gateCount} cổng`);
           } catch (error) {
             toast(error instanceof Error ? error.message : String(error));
           }
@@ -619,9 +784,11 @@
             return;
           }
           activeModalOutputIdx = outIdx;
+          const group = getQuartusBdfOutputGroup(outIdx);
+          setBdfPortNameDefaults(outIdx);
           $("bdf-format-auto").checked = true;
           $("modal-target-info").textContent =
-            `Export · Output ${outputLabels[outIdx]}`;
+            `Export · ${group.label}`;
           selectExportFormat("bdf");
           $("copy-modal").classList.remove("hidden");
           updateBdfFormatSummary();

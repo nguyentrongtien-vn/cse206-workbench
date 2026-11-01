@@ -153,7 +153,7 @@
               id="pta"
               rows="3"
               class="paste-input"
-              placeholder="Bảng: dán dữ liệu từ Excel&#10;Công thức: a) Σ m(0,2,4,6,8,10,12)&#10;Hoặc: b) Π M(1,3,5,7)"
+              placeholder="Bảng: dán dữ liệu từ Excel (Không dán header)&#10;Công thức: Σm(0,2,4,6,8,10,12) Hoặc ΠM(1,3,5,7)"
             ></textarea>
             <div class="term-entry" aria-label="Nhập chỉ số minterm hoặc maxterm">
               <label class="term-entry-field">
@@ -190,7 +190,7 @@
                 <div>
                   <span class="panel-kicker">INPUT MATRIX</span>
                   <h2>Bảng chân trị</h2>
-                  <span class="header-edit-hint">Sửa trực tiếp nhãn ở đầu cột · Chữ, số, _</span>
+                  <span class="header-edit-hint">Sửa nhãn đầu cột · Enter lưu/chuyển tiếp · Shift+Enter lùi · Esc hủy</span>
                 </div>
                 <div class="table-header-actions">
                   <span class="panel-meta" id="kmap-summary">16 hàng</span>
@@ -396,6 +396,19 @@
           </div>
 
           <div class="bdf-export-options" id="bdf-export-options" hidden>
+            <div class="bdf-port-names">
+              <label class="label-preset-field">
+                <span>Tên bus input BDF</span>
+                <input id="bdf-input-names" type="text" autocomplete="off" spellcheck="false"
+                  aria-label="Tên bus input trong file BDF" placeholder="Ví dụ: A" />
+              </label>
+              <label class="label-preset-field">
+                <span>Tên bus output BDF</span>
+                <input id="bdf-output-names" type="text" autocomplete="off" spellcheck="false"
+                  aria-label="Tên bus output trong file BDF" placeholder="Ví dụ: Y" />
+              </label>
+              <small>Nhập một tên cho mỗi bus. Các bit được đánh số tự động; biểu thức logic và bảng chính không thay đổi.</small>
+            </div>
             <fieldset class="bdf-format-group">
               <legend>
                 <span>Dạng logic</span>
@@ -496,6 +509,11 @@
     <script src="src/js/core/state.js" defer></script>
     <script src="src/js/core/dom.js" defer></script>
     <script src="src/js/features/kmap.js" defer></script>
+    <script src="src/js/features/bdf-export/expression.js" defer></script>
+    <script src="src/js/features/bdf-export/netlist.js" defer></script>
+    <script src="src/js/features/bdf-export/layout.js" defer></script>
+    <script src="src/js/features/bdf-export/serializer.js" defer></script>
+    <script src="src/js/features/bdf-export/index.js" defer></script>
     <script src="src/js/features/export.js" defer></script>
     <script src="src/js/features/paste.js" defer></script>
     <script src="src/js/features/converter.js" defer></script>
