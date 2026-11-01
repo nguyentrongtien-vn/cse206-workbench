@@ -6,6 +6,10 @@ integer base conversion.
 Truth-table column labels can be edited directly in the header. Labels must be
 unique identifiers (letters, numbers, and underscores) and are reflected in
 the K-Maps, minimized expressions, and copy/export output.
+Use the input/output label fields to apply several labels at once; separate
+labels with commas or tabs, or paste a list copied from a spreadsheet. The
+truth-table's **Sao chép bảng** button copies the current labels and values as
+tab-separated text for pasting into Excel, Word, or another spreadsheet.
 
 ## Run
 

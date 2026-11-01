@@ -99,7 +99,10 @@ const $ = (id) => document.getElementById(id);
         const count = isInput ? n : m;
         const labels = isInput ? inputLabels : outputLabels;
         const seriesInput = $(isInput ? "input-label-series" : "output-label-series");
-        const nextLabels = seriesInput.value.split(",").map((label) => label.trim());
+        const nextLabels = seriesInput.value
+          .split(/[,\t\r\n;|]+/)
+          .map((label) => label.trim())
+          .filter(Boolean);
 
         const otherLabels = isInput
           ? outputLabels.slice(0, m)
@@ -304,6 +307,18 @@ const $ = (id) => document.getElementById(id);
         $("input-label-series").value = inputLabels.slice(0, n).join(", ");
         $("output-label-series").value = outputLabels.slice(0, m).join(", ");
         solve();
+      });
+
+      $("copy-truth-table").addEventListener("click", () => {
+        const { n, m } = getSanitizedParams();
+        const rows = [
+          [...inputLabels.slice(0, n), ...outputLabels.slice(0, m)],
+          ...tt.map((values, row) => [
+            ...row.toString(2).padStart(n, "0"),
+            ...values,
+          ]),
+        ];
+        copyText(rows.map((row) => row.join("\t")).join("\n"));
       });
 
       $("n").onchange = $("m").onchange = () => {

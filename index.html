@@ -169,12 +169,17 @@
                   <h2>Bảng chân trị</h2>
                   <span class="header-edit-hint">Sửa trực tiếp nhãn ở đầu cột · Chữ, số, _</span>
                 </div>
-                <span class="panel-meta" id="kmap-summary">16 hàng</span>
+                <div class="table-header-actions">
+                  <span class="panel-meta" id="kmap-summary">16 hàng</span>
+                  <button class="btn secondary-btn table-copy-btn" id="copy-truth-table" type="button">
+                    Sao chép bảng
+                  </button>
+                </div>
               </div>
               <div class="label-preset-toolbar" aria-label="Tùy chỉnh nhãn bảng chân trị">
                 <div class="label-series-group">
                   <label class="label-preset-field">
-                    <span>Nhãn đầu vào · theo thứ tự cột</span>
+                    <span>Nhãn đầu vào · dấu phẩy hoặc tab</span>
                     <input id="input-label-series" type="text" autocomplete="off" spellcheck="false"
                       aria-label="Danh sách nhãn biến đầu vào"
                       placeholder="Ví dụ: A1, B1, C1" />
@@ -185,7 +190,7 @@
                 </div>
                 <div class="label-series-group">
                   <label class="label-preset-field">
-                    <span>Nhãn đầu ra · theo thứ tự cột</span>
+                    <span>Nhãn đầu ra · dấu phẩy hoặc tab</span>
                     <input id="output-label-series" type="text" autocomplete="off" spellcheck="false"
                       aria-label="Danh sách nhãn đầu ra"
                       placeholder="Ví dụ: F1, F2 hoặc A1, B1" />

@@ -663,6 +663,19 @@ input[type="number"] {
   font-size: 0.92rem;
 }
 
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.table-copy-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
 .header-edit-hint {
   display: block;
   margin-top: 5px;
@@ -1515,6 +1528,12 @@ table.t th {
 
   .label-series-group {
     padding: 8px;
+  }
+
+  .table-header-actions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 6px;
   }
 }
 
