@@ -236,28 +236,43 @@
     return true;
   }
 
+  let pastedHtml = "";
+  const applyInputs = () => {
+    const indexes = $("term-indexes").value.trim();
+    if (!indexes) return applyPaste($("pta").value, pastedHtml);
+
+    const operator = $("term-kind").value === "max" ? "ΠM" : "Σm";
+    const formula = `${operator}(${indexes})`;
+    $("pta").value = formula;
+    pastedHtml = "";
+    const applied = applyPaste(formula, "");
+    if (applied) $("term-indexes").value = "";
+    return applied;
+  };
+
+  $("pta").addEventListener("input", () => {
+    pastedHtml = "";
+  });
   $("pta").addEventListener("paste", (e) => {
     const cd = e.clipboardData;
     if (!cd) return;
     e.preventDefault();
     $("pta").value = cd.getData("text/plain");
-    applyPaste(cd.getData("text/plain"), cd.getData("text/html"));
+    pastedHtml = cd.getData("text/html");
+    pstMsg("Đã dán dữ liệu. Nhấn Áp dụng để cập nhật bảng.", 1);
   });
-  $("pap").onclick = () => applyPaste($("pta").value, "");
-  const applyTermIndexes = () => {
-    const indexes = $("term-indexes").value.trim();
-    if (!indexes) {
-      pstMsg("Vui lòng nhập danh sách chỉ số.", 0);
-      return;
-    }
-    const operator = $("term-kind").value === "max" ? "ΠM" : "Σm";
-    const formula = `${operator}(${indexes})`;
-    $("pta").value = formula;
-    applyPaste(formula, "");
-  };
-  $("apply-term-indexes").addEventListener("click", applyTermIndexes);
+  $("pap").addEventListener("click", applyInputs);
   $("term-indexes").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") applyTermIndexes();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyInputs();
+    }
+  });
+  $("pta").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      applyInputs();
+    }
   });
 
   /* ---------- Integer Base Converter ---------- */

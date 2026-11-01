@@ -18,7 +18,10 @@ set to 1, maxterm indexes to 0, and optional `+ d(...)` indexes are treated as
 don't-cares. If the variable list is omitted, the current input count and
 labels are used.
 For a quick single-function entry, select **Minterm** or **Maxterm**, enter the
-comma-separated indexes in the search field, and apply them.
+comma-separated indexes in the search field, and use the same **Áp dụng bảng /
+công thức** button as pasted tables and formulas. Pasting table data fills the
+input area; click the shared button to apply it. In the formula textarea,
+Ctrl+Enter (or Cmd+Enter) applies the current input.
 Each output includes **Xem từng bước**, which shows the SOP/POS grouping,
 implicant selection, and Boolean-law identities used for each reduction.
 Use **Export** on an output card to choose PDF, Word (`.doc`), plain text
