@@ -8,7 +8,7 @@
       content="Công cụ K-Map và chuyển đổi cơ số số nguyên cho CSE-206."
     />
     <title>CSE-206 Tools</title>
-    <link rel="stylesheet" href="src/styles.css" />
+    <link rel="stylesheet" href="src/css/styles.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -298,12 +298,17 @@
       id="copy-modal"
       class="modal-backdrop hidden"
     >
-      <div class="card modal-card">
+      <div
+        class="card modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-target-info"
+      >
         <div class="modal-header">
           <div>
             <span class="panel-kicker">EXPORT RESULT</span>
             <h2 id="modal-target-info">
-            Custom Copy Options
+              Export output
             </h2>
           </div>
           <button
@@ -317,27 +322,45 @@
 
         <div class="modal-content">
           <div class="modal-group">
-            <h3>Định dạng đầu ra</h3>
+            <h3>Chọn định dạng xuất</h3>
             <div class="format-options">
+            <button
+              class="btn fmt-btn format-option"
+              data-fmt="pdf"
+              type="button"
+            >
+              <span class="format-icon format-icon-pdf">PDF</span>
+              <span>Export PDF<small>Lưu hoặc in thành PDF</small></span>
+            </button>
             <button
               class="btn fmt-btn format-option selected"
               data-fmt="word"
+              type="button"
             >
               <span class="format-icon">W</span>
-              <span>MS Word<small>Định dạng phong phú</small></span>
+              <span>Export Word<small>Tải file .doc</small></span>
             </button>
             <button
               class="btn fmt-btn format-option"
               data-fmt="text"
+              type="button"
             >
               <span class="format-icon format-icon-text">TXT</span>
-              <span>Văn bản<small>Plain text / Excel</small></span>
+              <span>Export TXT<small>Tải văn bản thuần</small></span>
+            </button>
+            <button
+              class="btn fmt-btn format-option"
+              data-fmt="bdf"
+              type="button"
+            >
+              <span class="format-icon format-icon-bdf">BDF</span>
+              <span>Quartus BDF<small>Mạch logic Quartus</small></span>
             </button>
             </div>
           </div>
 
-          <div class="modal-group">
-            <h3>Thành phần cần sao chép</h3>
+          <div class="modal-group" id="copy-content-options">
+            <h3>Nội dung cần xuất</h3>
             <div class="copy-options">
             <label class="copy-option">
               <input
@@ -371,6 +394,90 @@
             </label>
             </div>
           </div>
+
+          <div class="bdf-export-options" id="bdf-export-options" hidden>
+            <fieldset class="bdf-format-group">
+              <legend>
+                <span>Dạng logic</span>
+                <small>Chọn một phương án</small>
+              </legend>
+              <div class="bdf-format-options">
+                <label class="bdf-format-choice bdf-auto-choice">
+                  <input id="bdf-format-auto" type="radio" name="bdf-format" value="auto" checked />
+                  <span class="bdf-choice-card">
+                    <span class="bdf-choice-top">
+                      <span class="bdf-choice-label">
+                        <strong>Tự động</strong>
+                        <small>Tối ưu số cổng</small>
+                      </span>
+                      <span class="bdf-recommended">ĐỀ XUẤT</span>
+                    </span>
+                    <span class="bdf-choice-bottom">
+                      <span>Chọn biểu thức gọn hơn</span>
+                      <strong id="bdf-auto-count">—</strong>
+                    </span>
+                  </span>
+                </label>
+                <label class="bdf-format-choice">
+                  <input type="radio" name="bdf-format" value="sop" />
+                  <span class="bdf-choice-card">
+                    <span class="bdf-choice-top">
+                      <span class="bdf-choice-label">
+                        <strong>SOP</strong>
+                        <small>AND → OR</small>
+                      </span>
+                      <span class="bdf-choice-check" aria-hidden="true">✓</span>
+                    </span>
+                    <span class="bdf-choice-bottom">
+                      <span>Sum of Products</span>
+                      <strong><span id="bdf-sop-count">—</span> cổng</strong>
+                    </span>
+                  </span>
+                </label>
+                <label class="bdf-format-choice">
+                  <input type="radio" name="bdf-format" value="pos" />
+                  <span class="bdf-choice-card">
+                    <span class="bdf-choice-top">
+                      <span class="bdf-choice-label">
+                        <strong>POS</strong>
+                        <small>OR → AND</small>
+                      </span>
+                      <span class="bdf-choice-check" aria-hidden="true">✓</span>
+                    </span>
+                    <span class="bdf-choice-bottom">
+                      <span>Product of Sums</span>
+                      <strong><span id="bdf-pos-count">—</span> cổng</strong>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="bdf-summary" aria-live="polite">
+              <span class="bdf-summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none">
+                  <path d="m5 10 3 3 7-7" />
+                </svg>
+              </span>
+              <span>
+                <strong id="bdf-summary-choice">Đang chọn phương án tối ưu</strong>
+                <small id="bdf-gate-counts">Đang tính số cổng…</small>
+              </span>
+            </div>
+
+            <div class="bdf-verified-note">
+              <span class="bdf-verified-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none">
+                  <path d="m5 10 3 3 7-7" />
+                  <circle cx="10" cy="10" r="8" />
+                </svg>
+              </span>
+              <span>
+                <strong>Mạch được xác thực trước khi tải</strong>
+                <small>Đối chiếu truth table; bỏ qua các ô don't-care.</small>
+              </span>
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -378,7 +485,7 @@
             Hủy
           </button>
           <button class="btn primary-btn" id="btn-modal-execute">
-            Sao chép vào Clipboard
+            Export Word
           </button>
         </div>
       </div>
@@ -386,6 +493,12 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="src/app.js" defer></script>
+    <script src="src/js/core/state.js" defer></script>
+    <script src="src/js/core/dom.js" defer></script>
+    <script src="src/js/features/kmap.js" defer></script>
+    <script src="src/js/features/export.js" defer></script>
+    <script src="src/js/features/paste.js" defer></script>
+    <script src="src/js/features/converter.js" defer></script>
+    <script src="src/js/app.js" defer></script>
   </body>
 </html>

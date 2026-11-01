@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "name": "CSE-206 Quartus BDF primitive catalog",
+  "description": "Catalog of the logic gates and pins currently emitted by the CSE-206 BDF exporter. This is not a complete Quartus library.",
+  "logicGates": [
+    {
+      "id": "NOT",
+      "displayName": "NOT",
+      "bdfType": "NOT",
+      "category": "logic-gate",
+      "description": "Inverts a single input.",
+      "inputs": ["IN"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = NOT IN",
+      "exporterSupported": true
+    },
+    {
+      "id": "AND2",
+      "displayName": "2-input AND",
+      "bdfType": "AND2",
+      "category": "logic-gate",
+      "description": "Outputs 1 when both inputs are 1.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = IN1 AND IN2",
+      "exporterSupported": true
+    },
+    {
+      "id": "OR2",
+      "displayName": "2-input OR",
+      "bdfType": "OR2",
+      "category": "logic-gate",
+      "description": "Outputs 1 when at least one input is 1.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = IN1 OR IN2",
+      "exporterSupported": true
+    },
+    {
+      "id": "NAND2",
+      "displayName": "2-input NAND",
+      "bdfType": "NAND2",
+      "category": "logic-gate",
+      "description": "Outputs 0 only when both inputs are 1.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = NOT (IN1 AND IN2)",
+      "exporterSupported": true
+    },
+    {
+      "id": "NOR2",
+      "displayName": "2-input NOR",
+      "bdfType": "NOR2",
+      "category": "logic-gate",
+      "description": "Outputs 1 only when both inputs are 0.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = NOT (IN1 OR IN2)",
+      "exporterSupported": true
+    },
+    {
+      "id": "XOR2",
+      "displayName": "2-input XOR",
+      "bdfType": "XOR",
+      "category": "logic-gate",
+      "description": "Outputs 1 when the inputs differ.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = IN1 XOR IN2",
+      "exporterSupported": true
+    },
+    {
+      "id": "XNOR2",
+      "displayName": "2-input XNOR (NXOR)",
+      "bdfType": "XNOR",
+      "category": "logic-gate",
+      "description": "Outputs 1 when the inputs are equal.",
+      "inputs": ["IN1", "IN2"],
+      "outputs": ["OUT"],
+      "booleanFunction": "OUT = NOT (IN1 XOR IN2)",
+      "exporterSupported": true,
+      "aliases": ["NXOR"]
+    }
+  ],
+  "pins": [
+    {
+      "id": "INPUT",
+      "displayName": "Input pin",
+      "bdfType": "input",
+      "direction": "input",
+      "ports": ["INPUT"],
+      "exporterSupported": true
+    },
+    {
+      "id": "OUTPUT",
+      "displayName": "Output pin",
+      "bdfType": "output",
+      "direction": "output",
+      "ports": ["OUTPUT"],
+      "exporterSupported": true
+    }
+  ]
+}

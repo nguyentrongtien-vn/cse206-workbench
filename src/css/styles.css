@@ -1338,6 +1338,10 @@ table.t th {
   box-shadow: 0 28px 80px rgb(17 24 39 / 24%);
 }
 
+#copy-modal .modal-card {
+  width: min(100%, 650px);
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1382,6 +1386,11 @@ table.t th {
   gap: 11px;
 }
 
+.modal-group[hidden],
+.bdf-export-options[hidden] {
+  display: none;
+}
+
 .modal-group h3 {
   margin: 0;
   color: #5e6980;
@@ -1391,7 +1400,7 @@ table.t th {
 
 .format-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1441,6 +1450,23 @@ table.t th {
   font-size: 0.59rem;
 }
 
+.format-icon-pdf {
+  background: #fff0ef;
+  color: #cb4e4b;
+  font-size: 0.58rem;
+}
+
+.format-icon-bdf {
+  background: #f0edff;
+  color: #6558bd;
+  font-size: 0.57rem;
+}
+
+.bdf-export-options {
+  display: grid;
+  gap: 18px;
+}
+
 .copy-options {
   display: grid;
   gap: 2px;
@@ -1468,6 +1494,245 @@ table.t th {
   height: 15px;
   margin: 0;
   accent-color: var(--accent);
+}
+
+.bdf-format-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bdf-format-group legend {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 11px;
+  color: #354058;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.bdf-format-group legend small {
+  color: #929bad;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.bdf-format-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bdf-format-choice {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.bdf-format-choice > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.bdf-choice-card {
+  display: grid;
+  min-height: 120px;
+  align-content: space-between;
+  gap: 17px;
+  padding: 13px 12px 11px;
+  border: 1px solid #e7eaf1;
+  border-radius: 12px;
+  background: #fff;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.bdf-format-choice:hover .bdf-choice-card {
+  transform: translateY(-1px);
+  border-color: #d3cff8;
+  box-shadow: 0 6px 16px rgb(43 49 81 / 6%);
+}
+
+.bdf-format-choice > input:checked + .bdf-choice-card {
+  border-color: #9389ed;
+  background: linear-gradient(155deg, #fbfaff, #f6f5ff);
+  box-shadow: 0 0 0 2px rgb(103 88 232 / 10%);
+}
+
+.bdf-format-choice > input:focus-visible + .bdf-choice-card {
+  outline: 3px solid rgb(103 88 232 / 24%);
+  outline-offset: 3px;
+}
+
+.bdf-choice-top,
+.bdf-choice-bottom {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.bdf-choice-top {
+  gap: 9px;
+}
+
+.bdf-choice-label {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.bdf-choice-label strong {
+  color: #2e3850;
+  font-size: 0.79rem;
+  font-weight: 720;
+}
+
+.bdf-choice-label small {
+  color: #8791a4;
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.bdf-recommended {
+  margin-left: auto;
+  padding: 4px 5px;
+  border-radius: 5px;
+  background: #ebe9ff;
+  color: #6355cc;
+  font-size: 0.47rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  white-space: nowrap;
+}
+
+.bdf-choice-check {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  place-items: center;
+  margin-left: auto;
+  border: 1px solid #dfe3ec;
+  border-radius: 50%;
+  color: transparent;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.bdf-format-choice > input:checked + .bdf-choice-card .bdf-choice-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.bdf-choice-bottom {
+  justify-content: space-between;
+  gap: 4px;
+  padding-top: 9px;
+  border-top: 1px solid #edf0f5;
+  color: #818ca0;
+  font-size: 0.59rem;
+}
+
+.bdf-choice-bottom > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bdf-choice-bottom strong {
+  flex: 0 0 auto;
+  color: #414c65;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.bdf-summary {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid #e8e7fb;
+  border-radius: 11px;
+  background: linear-gradient(105deg, #f7f6ff, #fbfaff);
+}
+
+.bdf-summary-icon {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  place-items: center;
+  border-radius: 9px;
+  background: #ebe9ff;
+  color: #6355d3;
+}
+
+.bdf-summary-icon svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.bdf-summary > span:last-child,
+.bdf-verified-note > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.bdf-summary strong,
+.bdf-verified-note strong {
+  color: #3e4860;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.bdf-summary small,
+.bdf-verified-note small {
+  color: #77839a;
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+
+.bdf-verified-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.bdf-verified-icon {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  place-items: center;
+  color: #24936a;
+}
+
+.bdf-verified-icon svg {
+  width: 21px;
+  height: 21px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
 }
 
 .modal-actions {
@@ -1733,12 +1998,40 @@ table.t th {
     width: auto;
   }
 
-  .format-options {
+  .modal-card {
+    padding: 18px;
+  }
+
+  #copy-modal .format-options {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .modal-card {
-    padding: 18px;
+  .bdf-format-options {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .bdf-choice-card {
+    min-height: 76px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 11px;
+  }
+
+  .bdf-choice-bottom {
+    max-width: 140px;
+    justify-content: flex-end;
+    border-top: 0;
+    text-align: right;
+  }
+
+  .bdf-choice-bottom > span {
+    display: none;
+  }
+
+  .bdf-auto-choice .bdf-choice-bottom > strong::after {
+    content: " dự kiến";
   }
 
   .modal-actions .btn {

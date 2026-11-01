@@ -1,0 +1,546 @@
+(() => {
+  const state = window.CSE206.state;
+  const { inputLabels, outputLabels, outputNotations } = state;
+  const { $, toast, copyText, copyHTML, getSanitizedParams } = window.CSE206.dom;
+  function buildTT() {
+      const { n, m } = getSanitizedParams();
+      const R = 1 << n;
+      state.tt = Array.from({ length: R }, (_, r) =>
+        Array.from({ length: m }, (_, c) => (state.tt[r] && state.tt[r][c]) || "0"),
+      );
+
+      let h =
+        '<table class="t"><tr>' +
+        inputLabels.slice(0, n)
+          .map(
+            (label, i) =>
+              `<th><input class="column-label" data-label-type="input" data-label-index="${i}" aria-label="Nhãn biến đầu vào ${i + 1}" maxlength="16" value="${label}"></th>`,
+          )
+          .join("") +
+        outputLabels.slice(0, m)
+          .map(
+            (label, i) =>
+              `<th><input class="column-label output-label" data-label-type="output" data-label-index="${i}" aria-label="Nhãn đầu ra ${i + 1}" maxlength="16" value="${label}"></th>`,
+          )
+          .join("") +
+        "</tr>";
+      for (let r = 0; r < R; r++) {
+        h +=
+          "<tr>" +
+          r
+            .toString(2)
+            .padStart(n, "0")
+            .split("")
+            .map((b) => `<td>${b}</td>`)
+            .join("") +
+          state.tt[r]
+            .map(
+              (v, c) =>
+                `<td><select data-r="${r}" data-c="${c}">${["0", "1", "X"].map((o) => `<option ${o === v ? "selected" : ""}>${o}</option>`).join("")}</select></td>`,
+            )
+            .join("") +
+          "</tr>";
+      }
+      $("tt").innerHTML = h + "</table>";
+      $("kmap-summary").textContent = `${R} hàng · ${n} biến · ${m} đầu ra`;
+      $("input-label-series").value = inputLabels.slice(0, n).join(", ");
+      $("output-label-series").value = outputLabels.slice(0, m).join(", ");
+    }
+
+    $("tt").addEventListener("change", (e) => {
+      const s = e.target;
+      if (s.dataset.r !== undefined) {
+        state.tt[s.dataset.r][s.dataset.c] = s.value;
+        return;
+      }
+
+      if (s.dataset.labelType) {
+        const label = s.value.trim();
+        const { n, m } = getSanitizedParams();
+        const labels = [
+          ...inputLabels.slice(0, n),
+          ...outputLabels.slice(0, m),
+        ];
+        const otherLabels = labels.filter(
+          (_, i) =>
+            i !==
+            (s.dataset.labelType === "input"
+              ? Number(s.dataset.labelIndex)
+              : n + Number(s.dataset.labelIndex)),
+        );
+        if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(label)) {
+          toast("Nhãn phải bắt đầu bằng chữ cái hoặc _, tối đa 16 ký tự.");
+          s.value =
+            s.dataset.labelType === "input"
+              ? inputLabels[s.dataset.labelIndex]
+              : outputLabels[s.dataset.labelIndex];
+          return;
+        }
+        if (otherLabels.some((other) => other.toLowerCase() === label.toLowerCase())) {
+          toast("Mỗi nhãn cột phải là duy nhất.");
+          s.value =
+            s.dataset.labelType === "input"
+              ? inputLabels[s.dataset.labelIndex]
+              : outputLabels[s.dataset.labelIndex];
+          return;
+        }
+
+        if (s.dataset.labelType === "input")
+          inputLabels[s.dataset.labelIndex] = label;
+        else outputLabels[s.dataset.labelIndex] = label;
+        s.value = label;
+        $("input-label-series").value = inputLabels
+          .slice(0, n)
+          .join(", ");
+        $("output-label-series").value = outputLabels
+          .slice(0, m)
+          .join(", ");
+        solve();
+      }
+    });
+
+    $("tt").addEventListener("input", (e) => {
+      const s = e.target;
+      if (!s.dataset.labelType) return;
+
+      const label = s.value.trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(label)) return;
+      const { n, m } = getSanitizedParams();
+      const labels = [
+        ...inputLabels.slice(0, n),
+        ...outputLabels.slice(0, m),
+      ];
+      const currentIndex =
+        s.dataset.labelType === "input"
+          ? Number(s.dataset.labelIndex)
+          : n + Number(s.dataset.labelIndex);
+      const otherLabels = labels.filter((_, i) => i !== currentIndex);
+      if (otherLabels.some((other) => other.toLowerCase() === label.toLowerCase())) {
+        return;
+      }
+
+      if (s.dataset.labelType === "input")
+        inputLabels[s.dataset.labelIndex] = label;
+      else outputLabels[s.dataset.labelIndex] = label;
+      $("input-label-series").value = inputLabels.slice(0, n).join(", ");
+      $("output-label-series").value = outputLabels.slice(0, m).join(", ");
+      solve();
+    });
+
+    $("copy-truth-table").addEventListener("click", () => {
+      const { n, m } = getSanitizedParams();
+      const rows = [
+        [...inputLabels.slice(0, n), ...outputLabels.slice(0, m)],
+        ...state.tt.map((values, row) => [
+          ...row.toString(2).padStart(n, "0"),
+          ...values,
+        ]),
+      ];
+      copyText(rows.map((row) => row.join("\t")).join("\n"));
+    });
+
+    $("n").onchange = $("m").onchange = () => {
+      buildTT();
+      solve();
+    };
+
+    function qmTrace(on, dc, collectSteps = true) {
+      if (!on.length) {
+        return {
+          target: on,
+          rounds: [],
+          primes: [],
+          selected: [],
+          selections: [],
+        };
+      }
+
+      let current = new Map();
+      [...on, ...dc].forEach((term) =>
+        current.set(`${term},0`, { v: term, m: 0 }),
+      );
+      const rounds = collectSteps ? [] : null;
+      const primes = [];
+      const bitCount = (value) => {
+        let count = 0;
+        while (value) {
+          count += value & 1;
+          value >>>= 1;
+        }
+        return count;
+      };
+
+      while (current.size) {
+        const terms = [...current.values()];
+        const next = new Map();
+        const combined = new Set();
+        const groups = collectSteps ? new Map() : null;
+        const combinations = collectSteps ? [] : null;
+        if (groups) {
+          terms.forEach((term) => {
+            const ones = bitCount(term.v & ~term.m);
+            if (!groups.has(ones)) groups.set(ones, []);
+            groups.get(ones).push(term);
+          });
+        }
+
+        for (let i = 0; i < terms.length; i++) {
+          for (let j = i + 1; j < terms.length; j++) {
+            const left = terms[i];
+            const right = terms[j];
+            if (left.m !== right.m) continue;
+            const difference = left.v ^ right.v;
+            if (!difference || (difference & (difference - 1))) continue;
+
+            const result = {
+              v: left.v & ~difference,
+              m: left.m | difference,
+            };
+            next.set(`${result.v},${result.m}`, result);
+            combined.add(i);
+            combined.add(j);
+            if (combinations) {
+              combinations.push({ left, right, result, difference });
+            }
+          }
+        }
+
+        const roundPrimes = terms.filter((_, index) => !combined.has(index));
+        primes.push(...roundPrimes);
+        if (rounds) {
+          rounds.push({
+            groups: [...groups.entries()].map(([ones, items]) => ({
+              ones,
+              items,
+            })),
+            combinations,
+            primes: roundPrimes,
+          });
+        }
+        current = next;
+      }
+
+      const covers = (implicant, term) =>
+        (term & ~implicant.m) === implicant.v;
+      const uncovered = new Set(on);
+      const selected = [];
+      const selections = collectSteps ? [] : null;
+      on.forEach((term) => {
+        const candidates = primes.filter((prime) => covers(prime, term));
+        if (candidates.length === 1 && !selected.includes(candidates[0])) {
+          const prime = candidates[0];
+          selected.push(prime);
+          if (selections) {
+            selections.push({
+              prime,
+              reason: `Ô ${term} chỉ được phủ bởi implicant này`,
+              covered: on.filter((item) => covers(prime, item)),
+            });
+          }
+        }
+      });
+      selected.forEach((prime) =>
+        on.forEach((term) => covers(prime, term) && uncovered.delete(term)),
+      );
+
+      while (uncovered.size) {
+        let best = null;
+        let bestCount = -1;
+        primes.forEach((prime) => {
+          const count = [...uncovered].filter((term) =>
+            covers(prime, term),
+          ).length;
+          if (count > bestCount) {
+            bestCount = count;
+            best = prime;
+          }
+        });
+        if (!best) break;
+
+        const newlyCovered = [...uncovered].filter((term) =>
+          covers(best, term),
+        );
+        selected.push(best);
+        if (selections) {
+          selections.push({
+            prime: best,
+            reason: `Phủ thêm các ô ${newlyCovered.join(", ")}`,
+            covered: on.filter((term) => covers(best, term)),
+          });
+        }
+        newlyCovered.forEach((term) => uncovered.delete(term));
+      }
+
+      return {
+        target: on,
+        rounds: rounds || [],
+        primes,
+        selected,
+        selections: selections || [],
+      };
+    }
+
+    const lits = (t, n, inv) => {
+      const a = [];
+      for (let i = 0; i < n; i++) {
+        const b = n - 1 - i;
+        if ((t.m >> b) & 1) continue;
+        const bit = (t.v >> b) & 1;
+        a.push(inputLabels[i] + ((inv ? bit : !bit) ? "'" : ""));
+      }
+      return a;
+    };
+
+    const sopStr = (T, n) =>
+      T.length
+        ? T.map((t) => {
+            const literals = lits(t, n);
+            const separator = inputLabels
+              .slice(0, n)
+              .some((label) => label.length > 1)
+              ? " · "
+              : "";
+            return literals.join(separator) || "1";
+          }).join(" + ")
+        : "0";
+    const posStr = (C, n) =>
+      !C.length
+        ? "1"
+        : C.some((t) => !lits(t, n).length)
+          ? "0"
+          : C.map((t) => {
+              const a = lits(t, n, 1);
+              return a.length > 1 && C.length > 1
+                ? "(" + a.join(" + ") + ")"
+                : a.join(" + ");
+            }).join("");
+
+    const GROUP_COLORS = [
+      { color: "#2563eb", tint: "#dbeafe" },
+      { color: "#dc2626", tint: "#fee2e2" },
+      { color: "#059669", tint: "#d1fae5" },
+      { color: "#9333ea", tint: "#f3e8ff" },
+      { color: "#d97706", tint: "#fef3c7" },
+      { color: "#0891b2", tint: "#cffafe" },
+      { color: "#db2777", tint: "#fce7f3" },
+      { color: "#4f46e5", tint: "#e0e7ff" },
+    ];
+
+    function booleanReductionSteps(sopTrace, posTrace, n) {
+      const groups = [
+        ...sopTrace.selected.map((implicant, index) => ({
+          implicant,
+          index,
+          isPos: false,
+          color: GROUP_COLORS[index % GROUP_COLORS.length],
+        })),
+        ...posTrace.selected.map((implicant, index) => ({
+          implicant,
+          index,
+          isPos: true,
+          color:
+            GROUP_COLORS[
+              (index + sopTrace.selected.length) % GROUP_COLORS.length
+            ],
+        })),
+      ];
+      const renderGroups = (isPos) => {
+        const matching = groups.filter((group) => group.isPos === isPos);
+        if (!matching.length) {
+          return `<p class="group-empty">Không cần nhóm ô ${isPos ? "0" : "1"}.</p>`;
+        }
+        return `<ul class="group-list">${matching
+        .map((group) => {
+          const expression = isPos
+            ? posStr([group.implicant], n)
+            : sopStr([group.implicant], n);
+          const covered = (isPos ? posTrace.target : sopTrace.target)
+            .filter(
+              (term) =>
+                (term & ~group.implicant.m) === group.implicant.v,
+            )
+            .map((term) => `${isPos ? "M" : "m"}${term}`)
+            .join(", ");
+          return `<li class="group-item"><span class="group-swatch" style="--group-color:${group.color.color};--group-tint:${group.color.tint}">${group.isPos ? "P" : "S"}${group.index + 1}</span><span><strong>${expression}</strong><small>Phủ ${covered}</small></span></li>`;
+        })
+        .join("")}</ul>`;
+      };
+      const sop = sopStr(sopTrace.selected, n);
+      const pos = posStr(posTrace.selected, n);
+      return {
+        groups,
+        html: `<div class="steps-legend">Mỗi màu biểu thị một nhóm trên K-map.</div><section class="boolean-step-section"><h4>Bước 1 · Gom ô 1 <span>SOP</span></h4>${renderGroups(false)}<p class="group-equation">SOP tối giản: <strong>${sop}</strong></p></section><section class="boolean-step-section"><h4>Bước 2 · Gom ô 0 <span>POS</span></h4>${renderGroups(true)}<p class="group-equation">POS tối giản: <strong>${pos}</strong></p></section>`,
+      };
+    }
+
+    function kmap(i, w, groups = []) {
+      const { n } = getSanitizedParams();
+      const rv = n >> 1,
+        cvn = n - rv,
+        gy = (k) => k ^ (k >> 1),
+        bin = (k, d) => (d ? k.toString(2).padStart(d, "0") : "");
+      const bd = w
+        ? "border:1px solid #64748b;"
+        : "border:1px solid #334155;";
+      const pd = "padding:6px 12px;text-align:center;font-family:monospace;";
+      const hc = w
+        ? "font-weight:bold;background:#e2e8f0;color:#0f172a;"
+        : "background:#0f172a;font-weight:bold;color:#94a3b8;";
+      const rowGroupLabel = inputLabels.slice(0, rv).join("");
+      const columnGroupLabel = inputLabels.slice(rv, n).join("");
+      const tableStyle = w
+        ? "border-collapse:collapse;margin:0.5rem auto;color:#111827"
+        : "";
+      const headerStyle = w
+        ? `${bd}${pd}font-weight:bold;background:#f3f4f6;color:#111827;`
+        : "";
+      const axisStyle = w
+        ? `${bd}${pd}background:#f8fafc;color:#334155;`
+        : "";
+      const valueStyle = w
+        ? `${bd}${pd}background:#fff;color:#111827;`
+        : "";
+
+      let h = `<table class="kmap-table" style="${tableStyle}"><tr><th class="kmap-corner kmap-axis" rowspan="2" colspan="2" style="${headerStyle}">K-map</th><th class="kmap-column-group kmap-axis" colspan="${1 << cvn}" style="${headerStyle}">${columnGroupLabel}</th></tr><tr>`;
+      for (let c = 0; c < 1 << cvn; c++)
+        h += `<th class="kmap-axis" style="${axisStyle}">${bin(gy(c), cvn)}</th>`;
+      h += "</tr>";
+
+      for (let r = 0; r < 1 << rv; r++) {
+        h += "<tr>";
+        if (r === 0)
+          h += `<th class="kmap-row-group kmap-axis" rowspan="${1 << rv}" style="${headerStyle}">${rowGroupLabel}</th>`;
+        h += `<th class="kmap-axis" style="${axisStyle}">${bin(gy(r), rv)}</th>`;
+        for (let c = 0; c < 1 << cvn; c++) {
+          const mt = (gy(r) << cvn) | gy(c),
+            v = state.tt[mt][i];
+          const cellGroups = groups.filter(
+            (group) => (mt & ~group.implicant.m) === group.implicant.v,
+          );
+          const valueClass =
+            v === "1" ? "kmap-value-one" : v === "X" ? "kmap-value-x" : "";
+          const groupStops = cellGroups
+            .map((group, index) => {
+              const start = (index / cellGroups.length) * 100;
+              const end = ((index + 1) / cellGroups.length) * 100;
+              return `${group.color.color} ${start}% ${end}%`;
+            })
+            .join(", ");
+          const groupStyle = !w && cellGroups.length
+            ? `--group-color:${cellGroups[0].color.color};--group-tint:${cellGroups[0].color.tint};--group-strip:linear-gradient(90deg,${groupStops});`
+            : "";
+          const cellStyle = w
+            ? `${bd}${pd}${v === "X" ? "background:#fff7df;color:#9c6a0a;font-weight:bold;" : valueStyle}`
+            : groupStyle;
+          const groupClass = cellGroups.length ? " kmap-value-grouped" : "";
+          const groupTitle = cellGroups.length
+            ? `; nhóm ${cellGroups.map((group) => `${group.isPos ? "P" : "S"}${group.index + 1}`).join(", ")}`
+            : "";
+          h += `<td class="kmap-value ${valueClass}${groupClass}" style="${cellStyle}" title="m${mt}${groupTitle}"><span>${v === "0" ? "" : v}</span></td>`;
+        }
+        h += "</tr>";
+      }
+      return h + "</table>";
+    }
+
+    function solve() {
+      const { n, m } = getSanitizedParams();
+      const R = 1 << n;
+      state.last = { n, m, out: [] };
+      let h = "";
+
+      for (let i = 0; i < m; i++) {
+        const on = [],
+          dc = [],
+          off = [];
+        for (let r = 0; r < R; r++) {
+          const v = state.tt[r][i];
+          (v === "1" ? on : v === "X" ? dc : off).push(r);
+        }
+        const sopTrace = qmTrace(on, dc, false);
+        const posTrace = qmTrace(off, dc, false);
+        const S = sopTrace.selected;
+        const C = posTrace.selected;
+        const outputLabel = outputLabels[i];
+        const notation = outputNotations[i] || "min";
+        state.last.out.push({ S, C, on, off, dc, sopTrace, posTrace });
+
+        h += `<article class="result-card">
+  <div class="result-heading">
+    <div><span class="result-label">OUTPUT</span><h3>${outputLabel}</h3></div>
+    <div class="result-actions">
+      <button class="result-action" onclick="window.copySingleExpr(${i},'SOP')">SOP</button>
+      <button class="result-action" onclick="window.copySingleExpr(${i},'POS')">POS</button>
+      <button class="result-action" title="Copy K-Map" aria-label="Copy K-Map ${outputLabel}" onclick="window.copyKmap(${i})">K-Map</button>
+      <button class="result-action step-toggle" aria-expanded="false" onclick="window.toggleBooleanSteps(${i})">Xem từng bước</button>
+      <button class="result-action custom-copy" onclick="window.openCustomCopyModal(${i})">Export</button>
+    </div>
+  </div>
+  <div class="term-summary"><span>${notation === "max" ? "ΠM" : "Σm"}(<span class="grn">${(notation === "max" ? off : on).join(", ") || "—"}</span>)</span><span>d(<span class="yel">${dc.join(", ") || "—"}</span>)</span></div>
+  <div class="map-container">${kmap(i, false)}</div>
+  <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel} = ${sopStr(S, n)}</code></div>
+  <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel} = ${posStr(C, n)}</code></div>
+  <div class="boolean-steps" id="boolean-steps-${i}" hidden></div>
+</article>`;
+      }
+      $("res").innerHTML = h;
+    }
+    $("solve").onclick = solve;
+
+    window.toggleBooleanSteps = function (outIdx) {
+      if (!state.last || !state.last.out[outIdx]) return;
+      const panel = $(`boolean-steps-${outIdx}`);
+      const button = $("res")
+        .querySelectorAll(".result-card")
+        [outIdx].querySelector(".step-toggle");
+      if (!panel.hidden) {
+        panel.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        button.textContent = "Xem từng bước";
+        $("res").querySelectorAll(".result-card")[outIdx]
+          .querySelector(".map-container").innerHTML = kmap(outIdx, false);
+        return;
+      }
+
+      const { sopTrace, posTrace } = state.last.out[outIdx];
+      const steps = booleanReductionSteps(sopTrace, posTrace, state.last.n);
+      panel.innerHTML = steps.html;
+      $("res").querySelectorAll(".result-card")[outIdx]
+        .querySelector(".map-container").innerHTML = kmap(
+          outIdx,
+          false,
+          steps.groups,
+        );
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      button.textContent = "Ẩn các bước";
+    };
+
+    /* ---------- Custom Granular Copy Helpers ---------- */
+    window.copySingleExpr = function (outIdx, type) {
+      const { n } = getSanitizedParams();
+      if (!state.last || !state.last.out[outIdx]) return;
+      const out = state.last.out[outIdx];
+      const expr =
+        type === "SOP"
+          ? `${outputLabels[outIdx]} = ${sopStr(out.S, n)}`
+          : `${outputLabels[outIdx]} = ${posStr(out.C, n)}`;
+      copyText(expr);
+    };
+
+    window.copyKmap = function (outIdx) {
+      if (!state.last || !state.last.out[outIdx]) return;
+
+      const table = kmap(outIdx, true);
+      const doc = new DOMParser().parseFromString(table, "text/html");
+      const rows = [...doc.querySelectorAll("tr")].map((row) =>
+        [...row.cells].map((cell) => cell.textContent.trim()).join("\t"),
+      );
+      const heading = `K-Map: ${outputLabels[outIdx]}`;
+      const plainText = `${heading}\n${rows.join("\n")}`;
+
+      copyHTML(`<h3>${heading}</h3>${table}`, plainText);
+    };
+
+    window.CSE206.kmap = { buildTT, solve, kmap, sopStr, posStr };
+})();
