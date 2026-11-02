@@ -171,6 +171,9 @@
 
         function getQuartusBdfExpression(outIdx, format) {
           const { n } = state.last;
+          if (format === "opt") {
+            return state.last.out[outIdx].optimal.source;
+          }
           const parity = getQuartusBdfParity(outIdx);
           if (parity) {
             const expression = parity.inputIndexes
@@ -185,23 +188,11 @@
         }
 
         function getQuartusBdfOutputGroup(outIdx) {
-          const outputNames = outputLabels.slice(0, state.last.m);
-          const matching = window.CSE206.bdfExport
-            .groupBuses(outputNames)
-            .find((unit) =>
-              unit.prefix && unit.bits.some((bit) => bit.position === outIdx),
-            );
-          return matching
-            ? {
-                indices: matching.bits.map((bit) => bit.position),
-                label: matching.label,
-                fileName: matching.prefix,
-              }
-            : {
-                indices: [outIdx],
-                label: outputLabels[outIdx],
-                fileName: outputLabels[outIdx],
-              };
+          return {
+            indices: [outIdx],
+            label: outputLabels[outIdx],
+            fileName: outputLabels[outIdx],
+          };
         }
 
         function quartusBdfLiteralIndexes(terms, n, format) {
@@ -266,22 +257,30 @@
               inputNames,
             );
           if (format !== "auto") return count(format);
-          return Math.min(count("sop"), count("pos"));
+          return Math.min(count("opt"), count("sop"), count("pos"));
         }
 
         function resolveQuartusBdfFormat(outIdx, requestedFormat) {
-          if (requestedFormat === "sop" || requestedFormat === "pos") {
+          if (
+            requestedFormat === "sop" ||
+            requestedFormat === "pos" ||
+            requestedFormat === "opt"
+          ) {
             return requestedFormat;
           }
           if (requestedFormat !== "auto") {
             throw new Error(`Định dạng BDF không hợp lệ: ${requestedFormat}`);
           }
-          const sopCount = estimateQuartusBdfGateCount(outIdx, "sop");
-          const posCount = estimateQuartusBdfGateCount(outIdx, "pos");
-          return sopCount <= posCount ? "sop" : "pos";
+          return ["opt", "sop", "pos"].reduce((best, format) =>
+            estimateQuartusBdfGateCount(outIdx, format) <
+            estimateQuartusBdfGateCount(outIdx, best)
+              ? format
+              : best,
+          );
         }
 
         function verifyQuartusBdfOutput(outIdx, format) {
+          if (format === "opt") return true;
           const group = getQuartusBdfOutputGroup(outIdx);
           for (const index of group.indices) {
             const terms = getQuartusBdfTerms(index, format);
@@ -683,9 +682,7 @@
           $("bdf-input-names").value = inferBdfBusName(
             inputLabels.slice(0, state.last.n),
           );
-          $("bdf-output-names").value = inferBdfBusName(
-            group.indices.map((index) => outputLabels[index]),
-          );
+          $("bdf-output-names").value = outputLabels[outIdx];
         }
 
         function generateQuartusBdf(outIdx, format, portNames) {
@@ -706,6 +703,9 @@
           if (!state.last || !state.last.out[activeModalOutputIdx]) return;
           const sopCount = estimateQuartusBdfGateCount(activeModalOutputIdx, "sop");
           const posCount = estimateQuartusBdfGateCount(activeModalOutputIdx, "pos");
+          const optCount = estimateQuartusBdfGateCount(activeModalOutputIdx, "opt");
+          const outputGroup = getQuartusBdfOutputGroup(activeModalOutputIdx);
+          const counts = { opt: optCount, sop: sopCount, pos: posCount };
           const selected = document.querySelector(
             'input[name="bdf-format"]:checked',
           )?.value || "auto";
@@ -714,18 +714,20 @@
             selected,
           );
           const formatName = selectedFormat.toUpperCase();
-          const selectedCount = selectedFormat === "sop" ? sopCount : posCount;
+          const selectedCount = counts[selectedFormat];
           $("bdf-sop-count").textContent = sopCount;
           $("bdf-pos-count").textContent = posCount;
-          $("bdf-auto-count").textContent = `${Math.min(sopCount, posCount)} cổng`;
+          $("bdf-opt-count").textContent = optCount;
+          $("bdf-auto-count").textContent =
+            `${Math.min(optCount, sopCount, posCount)} cổng`;
+          $("bdf-count-scope").textContent =
+            `Riêng ${outputGroup.label} · 1 đầu ra`;
           $("bdf-summary-choice").textContent = selected === "auto"
             ? `Tự động chọn ${formatName}`
             : `Đang chọn ${formatName}`;
           $("bdf-gate-counts").textContent = selected === "auto"
-            ? sopCount === posCount
-              ? `${selectedCount} cổng ước tính · SOP và POS có cùng số cổng.`
-              : `${selectedCount} cổng ước tính · ít hơn ${Math.abs(sopCount - posCount)} cổng so với ${sopCount < posCount ? "POS" : "SOP"}.`
-            : `Ước tính ${selectedCount} cổng logic cho mạch ${formatName}.`;
+            ? `${selectedCount} cổng cho ${outputGroup.label} · đã so sánh OPT, SOP và POS.`
+            : `${selectedCount} cổng cho ${outputGroup.label} dạng ${formatName}.`;
         }
 
         function downloadQuartusBdf(outIdx, requestedFormat) {

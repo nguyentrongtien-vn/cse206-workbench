@@ -908,6 +908,7 @@ table.t th {
   grid-template:
     "heading heading" auto
     "summary summary" auto
+    "map opt" minmax(0, 1fr)
     "map sop" minmax(0, 1fr)
     "map pos" minmax(0, 1fr)
     "steps steps" auto
@@ -954,6 +955,30 @@ table.t th {
   grid-area: sop;
 }
 
+.result-card > .optimized-row {
+  grid-area: opt;
+}
+
+.optimized-row .expression-label {
+  flex-basis: 48px;
+  color: #15845f;
+  font-size: 0.56rem;
+}
+
+.optimized-row .expression-gate-count {
+  flex: 0 0 auto;
+  color: #588571;
+  font-size: 0.54rem;
+  white-space: nowrap;
+}
+
+.optimized-row code {
+  border-color: #d7eee4;
+  background: #f1faf5;
+  color: #17684f;
+  font-weight: 650;
+}
+
 .result-card > .pos-row {
   grid-area: pos;
 }
@@ -967,6 +992,26 @@ table.t th {
 
 .boolean-steps[hidden] {
   display: none;
+}
+
+.boolean-reduction-equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  color: #29344a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.boolean-reduction-equation strong {
+  border-radius: 4px;
+  padding: 1px 4px;
+  background: #fff3a8;
+  color: #29344a;
+  font-weight: 700;
 }
 
 .boolean-step-section + .boolean-step-section {
@@ -1209,14 +1254,15 @@ table.t th {
 
 .expression-row {
   justify-content: flex-start;
-  gap: 7px;
-  margin-top: 6px;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 3px;
 }
 
 .expression-label {
-  width: 29px;
+  flex: 0 0 27px;
   color: #7a8497;
-  font-size: 0.63rem;
+  font-size: 0.59rem;
   font-weight: 700;
 }
 
@@ -1224,12 +1270,13 @@ table.t th {
   min-width: 0;
   overflow-wrap: anywhere;
   border: 1px solid #eeeef7;
-  border-radius: 5px;
-  padding: 4px 7px;
+  border-radius: 4px;
+  padding: 3px 5px;
   background: #f8f8fc;
   color: #29344a;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
+  line-height: 1.35;
 }
 
 .empty-results {
@@ -1541,7 +1588,7 @@ table.t th {
 
 .bdf-format-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1945,6 +1992,7 @@ table.t th {
       "heading" auto
       "summary" auto
       "map" auto
+      "opt" auto
       "sop" auto
       "pos" auto
       "steps" auto

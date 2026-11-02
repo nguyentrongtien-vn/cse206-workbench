@@ -14,6 +14,18 @@
       .gates.length;
   }
 
+  function analyze(source, output, inputNames) {
+    const netlist = synthesize(
+      parseExpression(source, inputNames),
+      output,
+      inputNames,
+    );
+    return {
+      gateCount: netlist.gates.length,
+      gateTypes: [...new Set(netlist.gates.map((gate) => gate.type))],
+    };
+  }
+
   function countMany(functions, inputNames) {
     const expressions = functions.map((entry) => ({
       output: entry.output,
@@ -125,7 +137,7 @@
     return generateMany([{ source, output, expectedRows }], inputNames);
   }
 
-  const api = { count, countMany, generate, generateMany, groupBuses };
+  const api = { analyze, count, countMany, generate, generateMany, groupBuses };
   window.CSE206.bdfModules.index = api;
   window.CSE206.bdfExport = api;
 })();

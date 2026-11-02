@@ -233,6 +233,12 @@
         const rightLits = right.reduce((sum, prime) => sum + lits(prime, n).length, 0);
         if (left.length !== right.length) return left.length - right.length;
         if (leftLits !== rightLits) return leftLits - rightLits;
+        const factoredLength = (terms) => factorSopTerms(terms, n).length;
+        const leftFactoredLength = factoredLength(left);
+        const rightFactoredLength = factoredLength(right);
+        if (leftFactoredLength !== rightFactoredLength) {
+          return leftFactoredLength - rightFactoredLength;
+        }
         return left
           .map((prime) => `${prime.v},${prime.m}`)
           .sort()
@@ -243,8 +249,11 @@
       };
 
       let bestSelection = [];
+      let examinedCovers = 0;
       const solveCover = (remainingTerms, availablePrimes, chosen = []) => {
+        if (examinedCovers >= 4096) return;
         if (!remainingTerms.size) {
+          examinedCovers++;
           const candidate = [...chosen].sort((a, b) => a.v - b.v || a.m - b.m);
           if (!bestSelection.length || comparePrimes(candidate, bestSelection) < 0) {
             bestSelection = candidate;
@@ -252,7 +261,7 @@
           return;
         }
 
-        if (bestSelection.length && chosen.length >= bestSelection.length) {
+        if (bestSelection.length && chosen.length > bestSelection.length) {
           return;
         }
 
@@ -344,29 +353,192 @@
       return a;
     };
 
-    const sopStr = (T, n) =>
+    const formatCompactLiteral = (literal, n) => {
+      const label = inputLabels
+        .slice(0, n)
+        .find((name) => literal === name || literal === `${name}'`);
+      if (!label || label.length === 1) return literal;
+      return `${label}${literal.endsWith("'") ? "'" : ""}`;
+    };
+
+    const sopStr = (T, n, compact = false) =>
       T.length
         ? T.map((t) => {
             const literals = lits(t, n);
-            const separator = inputLabels
-              .slice(0, n)
-              .some((label) => label.length > 1)
-              ? " · "
-              : "";
-            return literals.join(separator) || "1";
-          }).join(" + ")
+            return (
+              (compact
+                ? literals
+                    .map((literal) => formatCompactLiteral(literal, n))
+                    .join("")
+                : literals.join(
+                    inputLabels
+                      .slice(0, n)
+                      .some((label) => label.length > 1)
+                      ? " · "
+                      : "",
+                  )) || "1"
+            );
+          }).join(compact ? "+" : " + ")
         : "0";
-    const posStr = (C, n) =>
+    const posStr = (C, n, compact = false) =>
       !C.length
         ? "1"
         : C.some((t) => !lits(t, n).length)
           ? "0"
           : C.map((t) => {
               const a = lits(t, n, 1);
-              return a.length > 1 && C.length > 1
-                ? "(" + a.join(" + ") + ")"
+              const clause = compact
+                ? a.map((literal) => formatCompactLiteral(literal, n)).join("+")
                 : a.join(" + ");
-            }).join("");
+              const needsParens = C.length > 1 && a.length > 1;
+              return needsParens ? `(${clause})` : clause;
+            }).join(
+              compact
+                ? ""
+                : inputLabels.slice(0, n).some((label) => label.length > 1)
+                  ? " · "
+                  : "",
+            );
+
+    function factorSopTerms(terms, n) {
+      const entries = terms.map((term, index) => ({
+        index,
+        literals: Array.from({ length: n }, (_, variableIndex) => {
+          const bit = n - variableIndex - 1;
+          if ((term.m >> bit) & 1) return null;
+          return {
+            index: variableIndex,
+            value: (term.v >> bit) & 1,
+          };
+        }).filter(Boolean),
+      }));
+      const pairs = [];
+
+      for (let left = 0; left < entries.length; left++) {
+        for (let right = left + 1; right < entries.length; right++) {
+          const first = entries[left];
+          const second = entries[right];
+          const shared = first.literals.filter((literal) =>
+            second.literals.some(
+              (candidate) =>
+                candidate.index === literal.index &&
+                candidate.value === literal.value,
+            ),
+          );
+          const firstOnly = first.literals.filter(
+            (literal) =>
+              !shared.some((candidate) => candidate.index === literal.index),
+          );
+          const secondOnly = second.literals.filter(
+            (literal) =>
+              !shared.some((candidate) => candidate.index === literal.index),
+          );
+          const xorPair =
+            firstOnly.length === 2 &&
+            secondOnly.length === 2 &&
+            firstOnly.every((literal) =>
+              secondOnly.some(
+                (candidate) =>
+                  candidate.index === literal.index &&
+                  candidate.value !== literal.value,
+              ),
+            );
+          if (!shared.length && !xorPair) continue;
+
+          pairs.push({
+            first,
+            second,
+            shared,
+            firstOnly,
+            secondOnly,
+            xorPair,
+            score: shared.length * 10 + Number(xorPair),
+          });
+        }
+      }
+
+      const used = new Set();
+      const replacements = new Map();
+      pairs
+        .sort((left, right) => right.score - left.score)
+        .forEach((pair) => {
+          if (
+            used.has(pair.first.index) ||
+            used.has(pair.second.index)
+          ) {
+            return;
+          }
+          const literal = ({ index, value }) =>
+            `${inputLabels[index]}${value ? "" : "'"}`;
+          const common = pair.shared.map(literal).join("");
+          let replacement;
+
+          if (pair.xorPair) {
+            const firstIndex = pair.firstOnly[0].index;
+            const secondIndex = pair.firstOnly[1].index;
+            const firstName = inputLabels[firstIndex];
+            const secondName = inputLabels[secondIndex];
+            const samePolarity =
+              pair.firstOnly[0].value === pair.firstOnly[1].value;
+            const parity = samePolarity
+              ? `(${firstName}⊕${secondName})'`
+              : `${firstName}⊕${secondName}`;
+            replacement = common ? `${common}(${parity})` : parity;
+          } else {
+            const firstRemainder = pair.firstOnly.map(literal).join("") || "1";
+            const secondRemainder =
+              pair.secondOnly.map(literal).join("") || "1";
+            replacement = common
+              ? `${common}(${firstRemainder}+${secondRemainder})`
+              : `${firstRemainder}+${secondRemainder}`;
+          }
+
+          used.add(pair.first.index);
+          used.add(pair.second.index);
+          replacements.set(
+            Math.min(pair.first.index, pair.second.index),
+            replacement,
+          );
+        });
+
+      const result = [];
+      entries.forEach((entry) => {
+        if (replacements.has(entry.index)) {
+          result.push(replacements.get(entry.index));
+        } else if (!used.has(entry.index)) {
+          result.push(
+            entry.literals.map(({ index, value }) =>
+              `${inputLabels[index]}${value ? "" : "'"}`,
+            ).join("") || "1",
+          );
+        }
+      });
+      return result.join("+") || "0";
+    }
+
+    function optimizeExpression(outputIndex, n, sopTerms) {
+      const output = outputLabels[outputIndex];
+      const inputNames = inputLabels.slice(0, n);
+      const bdfExport = window.CSE206.bdfExport;
+      if (!bdfExport) {
+        throw new Error("BDF optimizer chưa được khởi tạo.");
+      }
+      const source = factorSopTerms(sopTerms, n).replace(/⊕/g, "^");
+      const analysis = bdfExport.analyze(source, output, inputNames);
+      return {
+        source,
+        display: source
+          .replace(/\s+/g, "")
+          .replace(/[·*]/g, "")
+          .replace(/\^/g, "⊕"),
+        gateCount: analysis.gateCount,
+        type: /^[01]$/.test(source)
+          ? "CONST"
+          : analysis.gateTypes.length === 1
+            ? analysis.gateTypes[0]
+            : analysis.gateTypes.join("/"),
+      };
+    }
 
     const GROUP_COLORS = [
       { color: "#2563eb", tint: "#dbeafe" },
@@ -379,7 +551,7 @@
       { color: "#4f46e5", tint: "#e0e7ff" },
     ];
 
-    function booleanReductionSteps(sopTrace, posTrace, n) {
+    function booleanReductionSteps(sopTrace, posTrace, n, outputLabel) {
       const groups = [
         ...sopTrace.selected.map((implicant, index) => ({
           implicant,
@@ -397,32 +569,11 @@
             ],
         })),
       ];
-      const renderGroups = (isPos) => {
-        const matching = groups.filter((group) => group.isPos === isPos);
-        if (!matching.length) {
-          return `<p class="group-empty">Không cần nhóm ô ${isPos ? "0" : "1"}.</p>`;
-        }
-        return `<ul class="group-list">${matching
-        .map((group) => {
-          const expression = isPos
-            ? posStr([group.implicant], n)
-            : sopStr([group.implicant], n);
-          const covered = (isPos ? posTrace.target : sopTrace.target)
-            .filter(
-              (term) =>
-                (term & ~group.implicant.m) === group.implicant.v,
-            )
-            .map((term) => `${isPos ? "M" : "m"}${term}`)
-            .join(", ");
-          return `<li class="group-item"><span class="group-swatch" style="--group-color:${group.color.color};--group-tint:${group.color.tint}">${group.isPos ? "P" : "S"}${group.index + 1}</span><span><strong>${expression}</strong><small>Phủ ${covered}</small></span></li>`;
-        })
-        .join("")}</ul>`;
-      };
-      const sop = sopStr(sopTrace.selected, n);
-      const pos = posStr(posTrace.selected, n);
+      const sop = sopStr(sopTrace.selected, n, true);
+      const reduced = factorSopTerms(sopTrace.selected, n);
       return {
         groups,
-        html: `<div class="steps-legend">Mỗi màu biểu thị một nhóm trên K-map.</div><section class="boolean-step-section"><h4>Bước 1 · Gom ô 1 <span>SOP</span></h4>${renderGroups(false)}<p class="group-equation">SOP tối giản: <strong>${sop}</strong></p></section><section class="boolean-step-section"><h4>Bước 2 · Gom ô 0 <span>POS</span></h4>${renderGroups(true)}<p class="group-equation">POS tối giản: <strong>${pos}</strong></p></section>`,
+        html: `<div class="boolean-reduction-equation"><span>${outputLabel}=${sop}</span><span>=</span><strong>${reduced}</strong></div>`,
       };
     }
 
@@ -515,8 +666,9 @@
         const S = sopTrace.selected;
         const C = posTrace.selected;
         const outputLabel = outputLabels[i];
+        const optimal = optimizeExpression(i, n, S);
         const notation = outputNotations[i] || "min";
-        state.last.out.push({ S, C, on, off, dc, sopTrace, posTrace });
+        state.last.out.push({ S, C, on, off, dc, sopTrace, posTrace, optimal });
 
         h += `<article class="result-card">
   <div class="result-heading">
@@ -524,6 +676,7 @@
     <div class="result-actions">
       <button class="result-action" onclick="window.copySingleExpr(${i},'SOP')">SOP</button>
       <button class="result-action" onclick="window.copySingleExpr(${i},'POS')">POS</button>
+      <button class="result-action" onclick="window.copySingleExpr(${i},'OPT')">Tối ưu</button>
       <button class="result-action" title="Copy K-Map" aria-label="Copy K-Map ${outputLabel}" onclick="window.copyKmap(${i})">K-Map</button>
       <button class="result-action step-toggle" aria-expanded="false" onclick="window.toggleBooleanSteps(${i})">Xem từng bước</button>
       <button class="result-action custom-copy" onclick="window.openCustomCopyModal(${i})">Export</button>
@@ -531,8 +684,9 @@
   </div>
   <div class="term-summary"><span>${notation === "max" ? "ΠM" : "Σm"}(<span class="grn">${(notation === "max" ? off : on).join(", ") || "—"}</span>)</span><span>d(<span class="yel">${dc.join(", ") || "—"}</span>)</span></div>
   <div class="map-container">${kmap(i, false)}</div>
-  <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel} = ${sopStr(S, n)}</code></div>
-  <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel} = ${posStr(C, n)}</code></div>
+  <div class="expression-row optimized-row"><span class="expression-label">${optimal.type}</span><code>${outputLabel}=${optimal.display}</code><small class="expression-gate-count">${optimal.gateCount} cổng · riêng ${outputLabel}</small></div>
+  <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel}=${sopStr(S, n, true)}</code></div>
+  <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel}=${posStr(C, n, true)}</code></div>
   <div class="boolean-steps" id="boolean-steps-${i}" hidden></div>
 </article>`;
       }
@@ -556,7 +710,12 @@
       }
 
       const { sopTrace, posTrace } = state.last.out[outIdx];
-      const steps = booleanReductionSteps(sopTrace, posTrace, state.last.n);
+      const steps = booleanReductionSteps(
+        sopTrace,
+        posTrace,
+        state.last.n,
+        outputLabels[outIdx],
+      );
       panel.innerHTML = steps.html;
       $("res").querySelectorAll(".result-card")[outIdx]
         .querySelector(".map-container").innerHTML = kmap(
@@ -575,9 +734,11 @@
       if (!state.last || !state.last.out[outIdx]) return;
       const out = state.last.out[outIdx];
       const expr =
-        type === "SOP"
-          ? `${outputLabels[outIdx]} = ${sopStr(out.S, n)}`
-          : `${outputLabels[outIdx]} = ${posStr(out.C, n)}`;
+        type === "OPT"
+          ? `${outputLabels[outIdx]}=${out.optimal.display}`
+          : type === "SOP"
+            ? `${outputLabels[outIdx]}=${sopStr(out.S, n, true)}`
+            : `${outputLabels[outIdx]}=${posStr(out.C, n, true)}`;
       copyText(expr);
     };
 

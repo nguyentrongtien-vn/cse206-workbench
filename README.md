@@ -7,6 +7,8 @@ Truth-table column labels can be edited directly in the header. Press Enter to
 save and move to the next label, Shift+Enter to move back, or Escape to cancel.
 Labels must be unique identifiers (letters, numbers, and underscores) and are
 reflected in the K-Maps, minimized expressions, and copy/export output.
+The initial configuration shows seven outputs in descending order (`D6` to
+`D0`), matching common 7-segment signal naming.
 Use the input/output label fields to apply several labels at once; separate
 labels with commas or tabs, or paste a list copied from a spreadsheet. The
 truth-table's **Sao chép bảng** button copies the current labels and values as
@@ -22,23 +24,29 @@ comma-separated indexes in the search field, and use the same **Áp dụng bản
 công thức** button as pasted tables and formulas. Pasting table data fills the
 input area; click the shared button to apply it. In the formula textarea,
 Ctrl+Enter (or Cmd+Enter) applies the current input.
-Each output includes **Xem từng bước**, which shows the SOP/POS grouping,
-implicant selection, and Boolean-law identities used for each reduction.
+Each output includes **Xem từng bước**, which shows the minimized SOP and a
+compact factored Boolean equivalent, using XOR where a complementary pair is
+recognized. The optimized result uses that same final factored expression and
+shows its synthesized gate count. Displayed expressions omit the AND operator;
+adjacent variable names are parsed using the configured input labels.
+Each output card exports its own K-map and output pin to a separate BDF file;
+the optimized-row and BDF dialog gate counts both refer only to that selected
+output.
 Use **Export** on an output card to choose PDF, Word (`.doc`), plain text
 (`.txt`), or Quartus BDF (`.bdf`). PDF export opens the browser's print dialog;
 choose **Save as PDF** to download it. For document exports, select which
 K-Map details to include. BDF export offers SOP, POS, or automatic mode, which
 chooses the form with fewer synthesized gates. The generated circuit is checked
 against every defined truth-table row before download; don't-care rows are
-ignored. BDF generation synthesizes the selected Boolean expression into
-Quartus primitive gates and routes each net independently; XOR/XNOR parity
-functions are recognized. Contiguous numbered input labels (such as `A0`,
-`A1`) are automatically exported as bus pins with labeled bit taps. When
-numbered output labels form a bus (such as `Y0`, `Y1`), exporting any member
-exports the whole output bus. The BDF dialog lets you rename its input and
-output bus with one name each; bit ranges and taps are numbered automatically.
-Expressions and wiring remain connected to the original signals. Open the file
-in Quartus Prime Block Editor.
+ignored. BDF auto mode compares optimized, SOP, and POS implementations using
+the same synthesized gate count used for the displayed optimized expression.
+BDF generation synthesizes the selected Boolean expression into Quartus
+primitive gates and routes each net independently; XOR/XNOR parity functions
+are recognized. Contiguous numbered input labels (such as `A0`, `A1`) are
+automatically exported as bus pins with labeled bit taps. The BDF dialog lets
+you rename the input bus and the selected output pin. Expressions and wiring
+remain connected to the original signals. Open the file in Quartus Prime Block
+Editor.
 
 ## Run
 

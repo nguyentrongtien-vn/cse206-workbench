@@ -3,8 +3,11 @@
   window.CSE206.bdfModules = window.CSE206.bdfModules || {};
 
 
-  function tokenize(source, longNames) {
+  function tokenize(source, longNames, inputNames) {
     const tokens = [];
+    const namesByLength = [...inputNames].sort(
+      (left, right) => right.length - left.length,
+    );
     let index = 0;
     while (index < source.length) {
       if (/\s/.test(source[index])) {
@@ -12,6 +15,14 @@
         continue;
       }
       const rest = source.slice(index);
+      const knownName = namesByLength.find((name) =>
+        rest.startsWith(name),
+      );
+      if (knownName) {
+        tokens.push({ type: "id", value: knownName });
+        index += knownName.length;
+        continue;
+      }
       const identifier = (longNames ? /^[A-Za-z_]\w*/ : /^[A-Za-z][0-9]*/).exec(
         rest,
       );
@@ -140,7 +151,7 @@
 
   function parseExpression(source, inputNames) {
     const longNames = inputNames.some((name) => !/^[A-Za-z][0-9]*$/.test(name));
-    return parse(tokenize(source.replace(/·/g, "*"), longNames));
+    return parse(tokenize(source.replace(/·/g, "*"), longNames, inputNames));
   }
 
   window.CSE206.bdfModules.expression = { parseExpression, collectVariables };

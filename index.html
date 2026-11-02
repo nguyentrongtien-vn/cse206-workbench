@@ -131,7 +131,7 @@
                 id="m"
                 min="1"
                 max="16"
-                value="2"
+                value="7"
                 class="numeric-input"
               />
             </label>
@@ -228,7 +228,6 @@
                   <span class="panel-kicker">MINIMIZED OUTPUT</span>
                   <h2>Kết quả tối giản</h2>
                 </div>
-                <span class="result-indicator"><span class="status-dot"></span>Live</span>
               </div>
               <div id="res" class="result-grid"></div>
             </section>
@@ -404,12 +403,12 @@
                 <input id="bdf-output-names" type="text" autocomplete="off" spellcheck="false"
                   aria-label="Tên bus output trong file BDF" placeholder="Ví dụ: Y" />
               </label>
-              <small>Nhập một tên cho mỗi bus. Các bit được đánh số tự động; biểu thức logic và bảng chính không thay đổi.</small>
+              <small>Nhập tên cổng cho K-map đang xuất. Mỗi K-map tạo một file BDF riêng.</small>
             </div>
             <fieldset class="bdf-format-group">
               <legend>
                 <span>Dạng logic</span>
-                <small>Chọn một phương án</small>
+                <small id="bdf-count-scope">Tổng cổng cho bus đầu ra</small>
               </legend>
               <div class="bdf-format-options">
                 <label class="bdf-format-choice bdf-auto-choice">
@@ -425,6 +424,22 @@
                     <span class="bdf-choice-bottom">
                       <span>Chọn biểu thức gọn hơn</span>
                       <strong id="bdf-auto-count">—</strong>
+                    </span>
+                  </span>
+                </label>
+                <label class="bdf-format-choice">
+                  <input type="radio" name="bdf-format" value="opt" />
+                  <span class="bdf-choice-card">
+                    <span class="bdf-choice-top">
+                      <span class="bdf-choice-label">
+                        <strong>Tối ưu</strong>
+                        <small>NAND / NOR / XOR / SOP / POS</small>
+                      </span>
+                      <span class="bdf-choice-check" aria-hidden="true">✓</span>
+                    </span>
+                    <span class="bdf-choice-bottom">
+                      <span>Biểu thức trên kết quả</span>
+                      <strong><span id="bdf-opt-count">—</span> cổng</strong>
                     </span>
                   </span>
                 </label>
