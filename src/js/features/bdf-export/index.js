@@ -38,8 +38,8 @@
     if (!portNames) return null;
     const { inputBus, outputBus } = portNames;
     const allNames = [inputBus, outputBus];
-    if (allNames.some((name) => !/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(name))) {
-      throw new Error("Tên bus BDF không hợp lệ. Dùng chữ, số hoặc _ (tối đa 16 ký tự).");
+    if (allNames.some((name) => !/^[A-Za-z_][A-Za-z0-9_]{0,62}$/.test(name))) {
+      throw new Error("Tên bus BDF không hợp lệ. Dùng chữ, số hoặc _ (tối đa 63 ký tự).");
     }
     if (new Set(allNames.map((name) => name.toLowerCase())).size !== allNames.length) {
       throw new Error("Tên bus input và output BDF phải khác nhau.");

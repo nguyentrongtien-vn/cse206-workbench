@@ -5,6 +5,7 @@
   const { kmap, sopStr, posStr } = window.CSE206.kmap;
   let activeModalOutputIdx = 0;
   let activeModalFormat = "word";
+  let activeModalScope = "output";
   function quartusBdfSymbol(type, x, y, instance) {
     const height = type === "NOT" ? 32 : 48;
     const width = type === "NOT" ? 48 : 64;
@@ -657,32 +658,27 @@
           ].join("\n").replace(/\n/g, "\r\n");
         }
 
-        function parseBdfBusName(fieldId, label) {
-          const name = $(fieldId).value.trim();
-          if (!/^[A-Za-z_][A-Za-z0-9_]{0,15}$/.test(name)) {
+        function parseBdfModuleName() {
+          const name = $("bdf-module-name").value.trim();
+          if (!/^[A-Za-z_][A-Za-z0-9_]{0,31}$/.test(name)) {
             throw new Error(
-              `Tên bus ${label} không hợp lệ. Dùng chữ, số hoặc _ (tối đa 16 ký tự).`,
+              "Tên module không hợp lệ. Dùng chữ, số hoặc _; bắt đầu bằng chữ hoặc _ và tối đa 32 ký tự.",
             );
           }
           return name;
         }
 
-        function inferBdfBusName(names) {
-          const matches = names.map((name) =>
-            /^([A-Za-z_][A-Za-z0-9_]*?)(?:0|[1-9]\d*)$/.exec(name),
-          );
-          if (matches.every(Boolean) && matches.every((match) => match[1] === matches[0][1])) {
-            return matches[0][1];
-          }
-          return names[0];
+        function getBdfPortNames(moduleName) {
+          return {
+            inputBus: `${moduleName}_input_label`,
+            outputBus: `${moduleName}_output_label`,
+          };
         }
 
-        function setBdfPortNameDefaults(outIdx) {
-          const group = getQuartusBdfOutputGroup(outIdx);
-          $("bdf-input-names").value = inferBdfBusName(
-            inputLabels.slice(0, state.last.n),
-          );
-          $("bdf-output-names").value = outputLabels[outIdx];
+        function updateBdfNamePreview() {
+          const moduleName = $("bdf-module-name").value.trim() || "<name>";
+          $("bdf-input-preview").textContent = `${moduleName}_input_label`;
+          $("bdf-output-preview").textContent = `${moduleName}_output_label`;
         }
 
         function generateQuartusBdf(outIdx, format, portNames) {
@@ -721,13 +717,19 @@
           $("bdf-auto-count").textContent =
             `${Math.min(optCount, sopCount, posCount)} cổng`;
           $("bdf-count-scope").textContent =
-            `Riêng ${outputGroup.label} · 1 đầu ra`;
+            activeModalScope === "module"
+              ? `Tất cả ${state.last.m} output`
+              : `Riêng ${outputGroup.label} · 1 đầu ra`;
           $("bdf-summary-choice").textContent = selected === "auto"
             ? `Tự động chọn ${formatName}`
             : `Đang chọn ${formatName}`;
           $("bdf-gate-counts").textContent = selected === "auto"
-            ? `${selectedCount} cổng cho ${outputGroup.label} · đã so sánh OPT, SOP và POS.`
-            : `${selectedCount} cổng cho ${outputGroup.label} dạng ${formatName}.`;
+            ? activeModalScope === "module"
+              ? `Tự chọn dạng logic tối ưu riêng cho từng output.`
+              : `${selectedCount} cổng cho ${outputGroup.label} · đã so sánh OPT, SOP và POS.`
+            : activeModalScope === "module"
+              ? `Dùng dạng ${formatName} cho tất cả output.`
+              : `${selectedCount} cổng cho ${outputGroup.label} dạng ${formatName}.`;
         }
 
         function downloadQuartusBdf(outIdx, requestedFormat) {
@@ -736,14 +738,9 @@
             return;
           }
           try {
-            if ($("copy-modal").classList.contains("hidden")) {
-              setBdfPortNameDefaults(outIdx);
-            }
+            const moduleName = parseBdfModuleName();
             const format = resolveQuartusBdfFormat(outIdx, requestedFormat);
-            const portNames = {
-              inputBus: parseBdfBusName("bdf-input-names", "input"),
-              outputBus: parseBdfBusName("bdf-output-names", "output"),
-            };
+            const portNames = getBdfPortNames(moduleName);
             if (portNames.inputBus.toLowerCase() === portNames.outputBus.toLowerCase()) {
               throw new Error("Tên bus input và output BDF phải khác nhau.");
             }
@@ -754,7 +751,7 @@
               return;
             }
             const { content, gateCount } = generated;
-            const fileName = `${portNames.outputBus}.bdf`;
+            const fileName = `${moduleName}_${outputLabels[outIdx]}.bdf`;
             const url = URL.createObjectURL(
               new Blob([content], { type: "text/plain;charset=utf-8" }),
             );
@@ -785,16 +782,16 @@
             toast("Chưa có kết quả để xuất BDF.");
             return;
           }
+          activeModalScope = "output";
           activeModalOutputIdx = outIdx;
           const group = getQuartusBdfOutputGroup(outIdx);
-          setBdfPortNameDefaults(outIdx);
           $("bdf-format-auto").checked = true;
           $("modal-target-info").textContent =
             `Export · ${group.label}`;
           selectExportFormat("bdf");
           $("copy-modal").classList.remove("hidden");
           updateBdfFormatSummary();
-          $("bdf-format-auto").focus();
+          $("bdf-module-name").focus();
         };
 
         document.querySelectorAll('input[name="bdf-format"]').forEach((input) => {
@@ -805,24 +802,52 @@
           activeModalFormat = format;
           document.querySelectorAll(".fmt-btn").forEach((button) => {
             button.classList.toggle("selected", button.dataset.fmt === format);
+            button.hidden =
+              activeModalScope === "module" && button.dataset.fmt === "text";
           });
           const isBdf = format === "bdf";
+          const isModule = activeModalScope === "module";
           $("bdf-export-options").hidden = !isBdf;
-          $("copy-content-options").hidden = isBdf;
+          $("copy-content-options").hidden = isBdf || isModule;
+          $("module-export-note").hidden = !isModule;
           $("btn-modal-execute").textContent = isBdf
-            ? "Export Quartus BDF"
+            ? isModule
+              ? "Export tất cả BDF"
+              : "Export Quartus BDF"
             : format === "pdf"
-              ? "Export PDF"
+              ? isModule
+                ? "Export tất cả PDF"
+                : "Export PDF"
               : format === "word"
-                ? "Export Word"
+                ? isModule
+                  ? "Export tất cả Word"
+                  : "Export Word"
                 : "Export TXT";
           if (isBdf) updateBdfFormatSummary();
+          if (isBdf && !$("copy-modal").classList.contains("hidden")) {
+            $("bdf-module-name").focus();
+          }
         }
 
         window.openCustomCopyModal = function (outIdx) {
+          activeModalScope = "output";
           activeModalOutputIdx = outIdx;
           $("modal-target-info").textContent =
             `Export · Output ${outputLabels[outIdx]}`;
+          selectExportFormat("word");
+          $("copy-modal").classList.remove("hidden");
+        };
+
+        window.openModuleExportModal = function () {
+          if (!state.last || !state.last.out.length) {
+            toast("Hãy giải bài trước khi export module.");
+            return;
+          }
+          activeModalScope = "module";
+          activeModalOutputIdx = 0;
+          $("modal-target-info").textContent =
+            `Export toàn bộ module · ${state.last.m} output`;
+          $("bdf-format-auto").checked = true;
           selectExportFormat("word");
           $("copy-modal").classList.remove("hidden");
         };
@@ -834,7 +859,179 @@
           button.onclick = () => selectExportFormat(button.dataset.fmt);
         });
 
+        $("bdf-module-name").addEventListener("input", updateBdfNamePreview);
+
+        function buildFullOutputExport(outIdx) {
+          const { n } = getSanitizedParams();
+          const outData = state.last.out[outIdx];
+          const outputLabel = outputLabels[outIdx];
+          const isMaxterm = outputNotations[outIdx] === "max";
+          const notation =
+            `${isMaxterm ? "ΠM" : "Σm"}(${(isMaxterm ? outData.off : outData.on).join(", ") || "—"})`;
+          const table = kmap(outIdx, true);
+          const optimal = `${outputLabel} = ${outData.optimal.display}`;
+          const sop = `${outputLabel} = ${sopStr(outData.S, n)}`;
+          const pos = `${outputLabel} = ${posStr(outData.C, n)}`;
+          const title = `K-Map Analysis: ${outputLabel}`;
+          const html = `<h1>${title}</h1>
+<h2>K-Map</h2>${table}
+<p><strong>${isMaxterm ? "Maxterms" : "Minterms"}:</strong> ${notation} <strong>Don't cares:</strong> (${outData.dc.join(", ") || "—"})</p>
+<p><strong>Tối ưu (${outData.optimal.type}):</strong> ${optimal} · ${outData.optimal.gateCount} cổng</p>
+<p><strong>SOP:</strong> ${sop}</p>
+<p><strong>POS:</strong> ${pos}</p>`;
+          const documentHtml = `<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    body { color: #172033; font: 12pt Arial, sans-serif; margin: 24mm; }
+    h1 { font-size: 20pt; margin: 0 0 18pt; }
+    h2 { font-size: 15pt; margin: 16pt 0 8pt; }
+    p { margin: 10pt 0; }
+    table { border-collapse: collapse; margin: 14pt auto; }
+    th, td { border: 1px solid #64748b; padding: 6px 12px; text-align: center; }
+    th { background: #f1f5f9; }
+    @page { size: A4; margin: 18mm; }
+    @media print { body { margin: 0; } }
+  </style>
+</head>
+<body>${html}</body>
+</html>`;
+          return {
+            documentHtml,
+            fileName: `${outputLabel}_kmap`,
+          };
+        }
+
+        function downloadModuleBdfs(requestedFormat) {
+          const moduleName = parseBdfModuleName();
+          const portNames = getBdfPortNames(moduleName);
+          const failures = [];
+          let exported = 0;
+          state.last.out.forEach((_, outIdx) => {
+            const fileLabel = outputLabels[outIdx];
+            try {
+              const format = resolveQuartusBdfFormat(outIdx, requestedFormat);
+              verifyQuartusBdfOutput(outIdx, format);
+              const generated = generateQuartusBdf(outIdx, format, portNames);
+              if (!generated?.content) {
+                throw new Error("Không tạo được nội dung BDF.");
+              }
+              const url = URL.createObjectURL(
+                new Blob([generated.content], {
+                  type: "text/plain;charset=utf-8",
+                }),
+              );
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `${moduleName}_${fileLabel}.bdf`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              exported++;
+            } catch (error) {
+              failures.push(
+                `${fileLabel}: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          });
+          return { exported, failures };
+        }
+
+        function exportWholeModule(format) {
+          const outputCount = state.last.out.length;
+          if (format === "bdf") {
+            const requestedFormat = document.querySelector(
+              'input[name="bdf-format"]:checked',
+            )?.value || "auto";
+            let result;
+            try {
+              result = downloadModuleBdfs(requestedFormat);
+            } catch (error) {
+              toast(error instanceof Error ? error.message : String(error));
+              return;
+            }
+            const { exported, failures } = result;
+            $("copy-modal").classList.add("hidden");
+            toast(
+              failures.length
+                ? `Đã xuất ${exported}/${outputCount} BDF. Lỗi: ${failures[0]}`
+                : `Đã xuất ${exported} file BDF.`,
+            );
+            return;
+          }
+
+          if (format === "pdf") {
+            let opened = 0;
+            const failures = [];
+            state.last.out.forEach((_, outIdx) => {
+              try {
+                const { documentHtml } = buildFullOutputExport(outIdx);
+                const printWindow = window.open("", "_blank");
+                if (!printWindow) return;
+                printWindow.document.open();
+                printWindow.document.write(documentHtml);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => printWindow.print(), 250);
+                opened++;
+              } catch (error) {
+                failures.push(
+                  `${outputLabels[outIdx]}: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
+            });
+            $("copy-modal").classList.add("hidden");
+            toast(
+              failures.length
+                ? `Đã mở ${opened}/${outputCount} PDF. Lỗi: ${failures[0]}`
+                : opened === outputCount
+                ? `Đã mở cửa sổ in cho ${opened} output. Lưu từng output thành PDF.`
+                : `Chỉ mở được ${opened}/${outputCount} cửa sổ PDF. Cho phép pop-ups rồi thử lại.`,
+            );
+            return;
+          }
+
+          let exported = 0;
+          const failures = [];
+          state.last.out.forEach((_, outIdx) => {
+            try {
+              const { documentHtml, fileName } = buildFullOutputExport(outIdx);
+              const url = URL.createObjectURL(
+                new Blob([documentHtml], {
+                  type: "application/msword;charset=utf-8",
+                }),
+              );
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `${fileName}.doc`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              exported++;
+            } catch (error) {
+              failures.push(
+                `${outputLabels[outIdx]}: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          });
+          $("copy-modal").classList.add("hidden");
+          toast(
+            failures.length
+              ? `Đã xuất ${exported}/${outputCount} Word. Lỗi: ${failures[0]}`
+              : `Đã xuất ${exported} file Word.`,
+          );
+        }
+
         $("btn-modal-execute").onclick = () => {
+          if (activeModalScope === "module") {
+            exportWholeModule(activeModalFormat);
+            return;
+          }
+
           const outIdx = activeModalOutputIdx;
           if (activeModalFormat === "bdf") {
             const bdfFormat = document.querySelector(

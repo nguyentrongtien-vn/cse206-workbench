@@ -123,16 +123,22 @@
       labelFields[nextIndex]?.focus();
     });
 
-    $("copy-truth-table").addEventListener("click", () => {
+    function copyTruthTable() {
       const { n, m } = getSanitizedParams();
       const rows = [
         [...inputLabels.slice(0, n), ...outputLabels.slice(0, m)],
-        ...state.tt.map((values, row) => [
-          ...row.toString(2).padStart(n, "0"),
+        ...state.tt.map((values, rowIndex) => [
+          ...rowIndex.toString(2).padStart(n, "0"),
           ...values,
         ]),
       ];
       copyText(rows.map((row) => row.join("\t")).join("\n"));
+    }
+
+    $("tt").addEventListener("click", (event) => {
+      if (event.target.closest("input, select, button")) return;
+      setActiveCopyTarget($("tt"));
+      copyTruthTable();
     });
 
     $("n").onchange = $("m").onchange = () => {
@@ -551,8 +557,8 @@
       { color: "#4f46e5", tint: "#e0e7ff" },
     ];
 
-    function booleanReductionSteps(sopTrace, posTrace, n, outputLabel) {
-      const groups = [
+    function getBooleanGroups(sopTrace, posTrace) {
+      return [
         ...sopTrace.selected.map((implicant, index) => ({
           implicant,
           index,
@@ -569,6 +575,10 @@
             ],
         })),
       ];
+    }
+
+    function booleanReductionSteps(sopTrace, posTrace, n, outputLabel) {
+      const groups = getBooleanGroups(sopTrace, posTrace);
       const sop = sopStr(sopTrace.selected, n, true);
       const reduced = factorSopTerms(sopTrace.selected, n);
       return {
@@ -667,6 +677,7 @@
         const C = posTrace.selected;
         const outputLabel = outputLabels[i];
         const optimal = optimizeExpression(i, n, S);
+        const groups = getBooleanGroups(sopTrace, posTrace);
         const notation = outputNotations[i] || "min";
         state.last.out.push({ S, C, on, off, dc, sopTrace, posTrace, optimal });
 
@@ -674,25 +685,56 @@
   <div class="result-heading">
     <div><span class="result-label">OUTPUT</span><h3>${outputLabel}</h3></div>
     <div class="result-actions">
-      <button class="result-action" onclick="window.copySingleExpr(${i},'SOP')">SOP</button>
-      <button class="result-action" onclick="window.copySingleExpr(${i},'POS')">POS</button>
-      <button class="result-action" onclick="window.copySingleExpr(${i},'OPT')">Tối ưu</button>
-      <button class="result-action" title="Copy K-Map" aria-label="Copy K-Map ${outputLabel}" onclick="window.copyKmap(${i})">K-Map</button>
       <button class="result-action step-toggle" aria-expanded="false" onclick="window.toggleBooleanSteps(${i})">Xem từng bước</button>
-      <button class="result-action custom-copy" onclick="window.openCustomCopyModal(${i})">Export</button>
     </div>
   </div>
   <div class="term-summary"><span>${notation === "max" ? "ΠM" : "Σm"}(<span class="grn">${(notation === "max" ? off : on).join(", ") || "—"}</span>)</span><span>d(<span class="yel">${dc.join(", ") || "—"}</span>)</span></div>
-  <div class="map-container">${kmap(i, false)}</div>
-  <div class="expression-row optimized-row"><span class="expression-label">${optimal.type}</span><code>${outputLabel}=${optimal.display}</code><small class="expression-gate-count">${optimal.gateCount} cổng · riêng ${outputLabel}</small></div>
-  <div class="expression-row sop-row"><span class="expression-label">SOP</span><code>${outputLabel}=${sopStr(S, n, true)}</code></div>
-  <div class="expression-row pos-row"><span class="expression-label">POS</span><code>${outputLabel}=${posStr(C, n, true)}</code></div>
+  <div class="map-container" data-copy-map="${i}" role="button" tabindex="0" aria-label="Sao chép K-Map ${outputLabel}" title="Bấm để sao chép K-Map">${kmap(i, false, groups)}</div>
+  <div class="expression-row optimized-row" data-copy-type="OPT" data-output-index="${i}" role="button" tabindex="0" aria-label="Sao chép biểu thức tối ưu ${outputLabel}" title="Bấm để sao chép"><span class="expression-label">${optimal.type}</span><code>${outputLabel}=${optimal.display}</code><small class="expression-gate-count">${optimal.gateCount} cổng · riêng ${outputLabel}</small></div>
+  <div class="expression-row sop-row" data-copy-type="SOP" data-output-index="${i}" role="button" tabindex="0" aria-label="Sao chép biểu thức SOP ${outputLabel}" title="Bấm để sao chép"><span class="expression-label">SOP</span><code>${outputLabel}=${sopStr(S, n, true)}</code></div>
+  <div class="expression-row pos-row" data-copy-type="POS" data-output-index="${i}" role="button" tabindex="0" aria-label="Sao chép biểu thức POS ${outputLabel}" title="Bấm để sao chép"><span class="expression-label">POS</span><code>${outputLabel}=${posStr(C, n, true)}</code></div>
   <div class="boolean-steps" id="boolean-steps-${i}" hidden></div>
 </article>`;
       }
       $("res").innerHTML = h;
     }
     $("solve").onclick = solve;
+
+    function copyFromResult(target) {
+      const expression = target.closest("[data-copy-type]");
+      if (expression) {
+        setActiveCopyTarget(expression);
+        window.copySingleExpr(
+          Number(expression.dataset.outputIndex),
+          expression.dataset.copyType,
+        );
+        return true;
+      }
+
+      const map = target.closest("[data-copy-map]");
+      if (!map) return false;
+      setActiveCopyTarget(map);
+      window.copyKmap(Number(map.dataset.copyMap));
+      return true;
+    }
+
+    function setActiveCopyTarget(target) {
+      $("res").querySelectorAll(".copy-feedback-active").forEach((active) => {
+        active.classList.remove("copy-feedback-active");
+      });
+      $("tt").classList.remove("copy-feedback-active");
+      target.classList.add("copy-feedback-active");
+    }
+
+    $("res").addEventListener("click", (event) => {
+      copyFromResult(event.target);
+    });
+
+    $("res").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if (!copyFromResult(event.target)) return;
+      event.preventDefault();
+    });
 
     window.toggleBooleanSteps = function (outIdx) {
       if (!state.last || !state.last.out[outIdx]) return;
@@ -705,7 +747,14 @@
         button.setAttribute("aria-expanded", "false");
         button.textContent = "Xem từng bước";
         $("res").querySelectorAll(".result-card")[outIdx]
-          .querySelector(".map-container").innerHTML = kmap(outIdx, false);
+          .querySelector(".map-container").innerHTML = kmap(
+            outIdx,
+            false,
+            getBooleanGroups(
+              state.last.out[outIdx].sopTrace,
+              state.last.out[outIdx].posTrace,
+            ),
+          );
         return;
       }
 

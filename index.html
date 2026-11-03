@@ -191,9 +191,7 @@
                 </div>
                 <div class="table-header-actions">
                   <span class="panel-meta" id="kmap-summary">16 hàng</span>
-                  <button class="btn secondary-btn table-copy-btn" id="copy-truth-table" type="button">
-                    Sao chép bảng
-                  </button>
+                  <span class="copy-hint">Bấm vào bảng để sao chép</span>
                 </div>
               </div>
               <div class="label-preset-toolbar" aria-label="Tùy chỉnh nhãn bảng chân trị">
@@ -230,6 +228,11 @@
                 </div>
               </div>
               <div id="res" class="result-grid"></div>
+              <div class="module-export-actions">
+                <button class="btn secondary-btn" type="button" onclick="window.openModuleExportModal()">
+                  Export toàn bộ module
+                </button>
+              </div>
             </section>
           </div>
         </section>
@@ -317,6 +320,9 @@
         </div>
 
         <div class="modal-content">
+          <div class="module-export-note" id="module-export-note" hidden>
+            Tạo một file riêng cho mỗi output. PDF sẽ mở cửa sổ in cho từng output.
+          </div>
           <div class="modal-group">
             <h3>Chọn định dạng xuất</h3>
             <div class="format-options">
@@ -392,18 +398,17 @@
           </div>
 
           <div class="bdf-export-options" id="bdf-export-options" hidden>
-            <div class="bdf-port-names">
+            <div class="bdf-module-name">
               <label class="label-preset-field">
-                <span>Tên bus input BDF</span>
-                <input id="bdf-input-names" type="text" autocomplete="off" spellcheck="false"
-                  aria-label="Tên bus input trong file BDF" placeholder="Ví dụ: A" />
+                <span>Tên module BDF</span>
+                <input id="bdf-module-name" type="text" autocomplete="off" spellcheck="false"
+                  aria-label="Tên module cho file BDF" maxlength="32" placeholder="Ví dụ: alu" />
               </label>
-              <label class="label-preset-field">
-                <span>Tên bus output BDF</span>
-                <input id="bdf-output-names" type="text" autocomplete="off" spellcheck="false"
-                  aria-label="Tên bus output trong file BDF" placeholder="Ví dụ: Y" />
-              </label>
-              <small>Nhập tên cổng cho K-map đang xuất. Mỗi K-map tạo một file BDF riêng.</small>
+              <small>
+                Input: <code id="bdf-input-preview">&lt;name&gt;_input_label</code>
+                · Output: <code id="bdf-output-preview">&lt;name&gt;_output_label</code>.
+                Tên chỉ gồm chữ, số và _; bắt đầu bằng chữ hoặc _.
+              </small>
             </div>
             <fieldset class="bdf-format-group">
               <legend>
