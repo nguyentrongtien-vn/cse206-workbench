@@ -694,6 +694,34 @@
       const valueStyle = w
         ? `${bd}${pd}background:#fff;color:#111827;`
         : "";
+      const renderGroups = groups
+        .filter((group) => !group.isPos)
+        .map((group) => {
+          const cells = new Set(
+            Array.from({ length: 1 << n }, (_, mt) => mt).filter(
+              (mt) => (mt & ~group.implicant.m) === group.implicant.v,
+            ),
+          );
+          const rows = new Set();
+          const columns = new Set();
+          for (const mt of cells) {
+            rows.add(mt >> cvn);
+            columns.add(mt & ((1 << cvn) - 1));
+          }
+          return {
+            ...group,
+            cells,
+            stripeDirection:
+              rows.size > columns.size
+                ? "vertical"
+                : rows.size < columns.size
+                  ? "horizontal"
+                  : group.index % 2
+                    ? "vertical"
+                    : "horizontal",
+          };
+        });
+      const mintermAt = (r, c) => (gy(r) << cvn) | gy(c);
 
       let h = `<table class="kmap-table" style="${tableStyle}"><tr><th class="kmap-corner kmap-axis" rowspan="2" colspan="2" style="${headerStyle}">K-map</th><th class="kmap-column-group kmap-axis" colspan="${1 << cvn}" style="${headerStyle}">${columnGroupLabel}</th></tr><tr>`;
       for (let c = 0; c < 1 << cvn; c++)
@@ -706,14 +734,10 @@
           h += `<th class="kmap-row-group kmap-axis" rowspan="${1 << rv}" style="${headerStyle}">${rowGroupLabel}</th>`;
         h += `<th class="kmap-axis" style="${axisStyle}">${bin(gy(r), rv)}</th>`;
         for (let c = 0; c < 1 << cvn; c++) {
-          const mt = (gy(r) << cvn) | gy(c),
+          const mt = mintermAt(r, c),
             v = state.tt[mt][i];
-          const cellGroups = v === "1"
-            ? groups.filter(
-              (group) =>
-                !group.isPos &&
-                (mt & ~group.implicant.m) === group.implicant.v,
-            )
+          const cellGroups = v === "1" || v === "X"
+            ? renderGroups.filter((group) => group.cells.has(mt))
             : [];
           const valueClass =
             v === "1" ? "kmap-value-one" : v === "X" ? "kmap-value-x" : "";
@@ -721,11 +745,16 @@
             .map((group, index) => {
               const start = (index / cellGroups.length) * 100;
               const end = ((index + 1) / cellGroups.length) * 100;
-              return `${group.color.color} ${start}% ${end}%`;
+              return `${group.color.tint} ${start}% ${end}%`;
             })
             .join(", ");
+          const horizontalGroups = cellGroups.filter(
+            (group) => group.stripeDirection === "horizontal",
+          ).length;
+          const gradientDirection =
+            horizontalGroups * 2 >= cellGroups.length ? "to bottom" : "to right";
           const groupStyle = !w && cellGroups.length
-            ? `--group-color:${cellGroups[0].color.color};--group-tint:${cellGroups[0].color.tint};--group-strip:linear-gradient(90deg,${groupStops});`
+            ? `--group-fill:linear-gradient(${gradientDirection},${groupStops});`
             : "";
           const cellStyle = w
             ? `${bd}${pd}${v === "X" ? "background:#fff7df;color:#9c6a0a;font-weight:bold;" : valueStyle}`
