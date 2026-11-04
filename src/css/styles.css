@@ -898,8 +898,8 @@ table.t th {
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 620px), 1fr));
+  gap: 16px;
 }
 
 .module-export-actions {
@@ -933,14 +933,15 @@ table.t th {
     "map sop" minmax(0, 1fr)
     "map pos" minmax(0, 1fr)
     "steps steps" auto
-    / minmax(0, 1.15fr) minmax(190px, 0.85fr);
-  align-items: center;
+    / minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  align-items: stretch;
   min-width: 0;
-  gap: 8px 16px;
-  padding: 17px;
-  border: 1px solid #e9ebf2;
-  border-radius: 11px;
-  background: linear-gradient(155deg, #fff, #fcfcff);
+  gap: 10px 18px;
+  padding: 20px;
+  border: 1px solid #e5e8f0;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #fff 35%, #fafaff);
+  box-shadow: 0 2px 8px rgb(34 42 74 / 3%);
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -948,9 +949,9 @@ table.t th {
 }
 
 .result-card:hover {
-  transform: translateY(-2px);
-  border-color: #dcd9fa;
-  box-shadow: 0 8px 20px rgb(57 49 116 / 7%);
+  transform: translateY(-1px);
+  border-color: #d5d1f6;
+  box-shadow: 0 8px 22px rgb(57 49 116 / 7%);
 }
 
 .result-card > .result-heading {
@@ -965,9 +966,12 @@ table.t th {
   grid-area: map;
   min-width: 0;
   overflow: auto;
-  border: 1px solid #e9ebf2;
-  border-radius: 9px;
-  background: #fff;
+  min-height: 170px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #e8eaf2;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #f8f9fd, #fff 65%);
   scrollbar-color: #cdd2df transparent;
   scrollbar-width: thin;
 }
@@ -980,23 +984,60 @@ table.t th {
   grid-area: opt;
 }
 
+.result-card > .expression-row {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 6px;
+  min-height: 62px;
+  margin: 0;
+  border: 1px solid #e9ebf2;
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #fff;
+}
+
+.result-card > .expression-row:hover {
+  border-color: #d9d4ff;
+  background: #fbfaff;
+}
+
+.result-card > .optimized-row {
+  border-color: #cfe9dc;
+  background: linear-gradient(120deg, #f0faf4, #fff);
+}
+
+.result-card > .optimized-row:hover {
+  border-color: #9ed5ba;
+  background: #effaf4;
+}
+
+.result-card > .expression-row .expression-label {
+  flex: initial;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: #f1f2f8;
+  color: #68728a;
+  font-size: 0.58rem;
+  letter-spacing: 0.035em;
+}
+
 .optimized-row .expression-label {
-  flex-basis: 48px;
-  color: #15845f;
-  font-size: 0.56rem;
+  background: #dff3e8 !important;
+  color: #15845f !important;
 }
 
 .optimized-row .expression-gate-count {
-  flex: 0 0 auto;
   color: #588571;
-  font-size: 0.54rem;
-  white-space: nowrap;
+  font-size: 0.62rem;
+  line-height: 1.4;
 }
 
 .optimized-row code {
-  border-color: #d7eee4;
-  background: #f1faf5;
+  border-color: #d7eee4 !important;
+  background: rgb(255 255 255 / 75%) !important;
   color: #17684f;
+  font-size: 0.72rem !important;
   font-weight: 650;
 }
 
@@ -1013,6 +1054,77 @@ table.t th {
 
 .boolean-steps[hidden] {
   display: none;
+}
+
+.qm-kmap-legend {
+  display: grid;
+  gap: 4px;
+  margin: 7px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qm-kmap-legend li {
+  display: grid;
+  grid-template-columns: 12px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 0.65rem;
+}
+
+.qm-color-swatch {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--qm-color);
+  border-radius: 50%;
+  background: var(--qm-tint);
+}
+
+.qm-kmap-legend li > strong {
+  color: var(--qm-color);
+  font-size: 0.63rem;
+}
+
+.qm-kmap-legend li > code,
+.qm-formula-list code {
+  justify-self: start;
+  border-radius: 4px;
+  padding: 2px 5px;
+  background: #f3f4f8;
+  color: #29344a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.67rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.qm-kmap-legend li > small {
+  color: #78839a;
+  font-size: 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.qm-formula-list {
+  display: grid;
+  gap: 5px;
+  margin: 7px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qm-formula-list li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.qm-formula-list li > strong {
+  padding-top: 3px;
+  color: #69748a;
+  font-size: 0.62rem;
 }
 
 .boolean-reduction-equation {
@@ -1048,9 +1160,19 @@ table.t th {
 }
 
 .steps-legend {
-  margin-bottom: 7px;
+  margin: 0 0 7px;
   color: #778198;
   font-size: 0.65rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.qm-final-formula {
+  margin: 7px 0 0;
+  color: #68748a;
+  font-size: 0.65rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .group-list {
@@ -1163,13 +1285,13 @@ table.t th {
   font-weight: 650;
 }
 
-.map-container .kmap-table .kmap-value-grouped {
+.map-container .kmap-table td.kmap-value-one.kmap-value-grouped {
   position: relative;
   background: var(--group-tint) !important;
   border-color: var(--group-color) !important;
 }
 
-.map-container .kmap-table .kmap-value-grouped::after {
+.map-container .kmap-table td.kmap-value-one.kmap-value-grouped::after {
   position: absolute;
   right: 2px;
   bottom: 1px;
@@ -1191,7 +1313,7 @@ table.t th {
 }
 
 .result-heading {
-  margin-bottom: 10px;
+  margin-bottom: 1px;
 }
 
 .result-label {
@@ -1206,7 +1328,7 @@ table.t th {
 .result-heading h3 {
   margin: 0;
   color: #263149;
-  font-size: 0.94rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
@@ -1240,11 +1362,19 @@ table.t th {
 
 .term-summary {
   justify-content: flex-start;
-  gap: 12px;
-  margin: 0 0 9px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 2px;
   color: #79849a;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.62rem;
+}
+
+.term-summary > span {
+  border: 1px solid #e9ebf2;
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: #f8f9fc;
 }
 
 .term-summary .grn {
@@ -1319,16 +1449,18 @@ table.t th {
 }
 
 .expression-row code {
+  display: block;
+  width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
   border: 1px solid #eeeef7;
-  border-radius: 4px;
-  padding: 3px 5px;
+  border-radius: 6px;
+  padding: 7px 8px;
   background: #f8f8fc;
   color: #29344a;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.65rem;
-  line-height: 1.35;
+  font-size: 0.69rem;
+  line-height: 1.5;
 }
 
 .empty-results {

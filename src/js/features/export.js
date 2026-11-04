@@ -668,20 +668,15 @@
           return name;
         }
 
-        function getBdfPortNames(moduleName) {
+        function getBdfPortNames(moduleName, outIdx) {
+          const inputLabel = inputLabels[0].replace(/(?:\[\d+\]|\d+)$/, "");
           return {
-            inputBus: `${moduleName}_input_label`,
-            outputBus: `${moduleName}_output_label`,
+            inputBus: `${moduleName}_${inputLabel}`,
+            outputBus: `${moduleName}_${outputLabels[outIdx]}`,
           };
         }
 
-        function updateBdfNamePreview() {
-          const moduleName = $("bdf-module-name").value.trim() || "<name>";
-          $("bdf-input-preview").textContent = `${moduleName}_input_label`;
-          $("bdf-output-preview").textContent = `${moduleName}_output_label`;
-        }
-
-        function generateQuartusBdf(outIdx, format, portNames) {
+        function generateQuartusBdf(outIdx, format, moduleName) {
           const group = getQuartusBdfOutputGroup(outIdx);
           const functions = group.indices.map((index) => ({
             source: getQuartusBdfExpression(index, format),
@@ -691,7 +686,7 @@
           return window.CSE206.bdfExport.generateMany(
             functions,
             inputLabels.slice(0, state.last.n),
-            portNames,
+            getBdfPortNames(moduleName, outIdx),
           );
         }
 
@@ -740,12 +735,8 @@
           try {
             const moduleName = parseBdfModuleName();
             const format = resolveQuartusBdfFormat(outIdx, requestedFormat);
-            const portNames = getBdfPortNames(moduleName);
-            if (portNames.inputBus.toLowerCase() === portNames.outputBus.toLowerCase()) {
-              throw new Error("Tên bus input và output BDF phải khác nhau.");
-            }
             verifyQuartusBdfOutput(outIdx, format);
-            const generated = generateQuartusBdf(outIdx, format, portNames);
+            const generated = generateQuartusBdf(outIdx, format, moduleName);
             if (!generated?.content) {
               toast("Không tạo được nội dung BDF.");
               return;
@@ -859,8 +850,6 @@
           button.onclick = () => selectExportFormat(button.dataset.fmt);
         });
 
-        $("bdf-module-name").addEventListener("input", updateBdfNamePreview);
-
         function buildFullOutputExport(outIdx) {
           const { n } = getSanitizedParams();
           const outData = state.last.out[outIdx];
@@ -906,7 +895,6 @@
 
         function downloadModuleBdfs(requestedFormat) {
           const moduleName = parseBdfModuleName();
-          const portNames = getBdfPortNames(moduleName);
           const failures = [];
           let exported = 0;
           state.last.out.forEach((_, outIdx) => {
@@ -914,7 +902,7 @@
             try {
               const format = resolveQuartusBdfFormat(outIdx, requestedFormat);
               verifyQuartusBdfOutput(outIdx, format);
-              const generated = generateQuartusBdf(outIdx, format, portNames);
+              const generated = generateQuartusBdf(outIdx, format, moduleName);
               if (!generated?.content) {
                 throw new Error("Không tạo được nội dung BDF.");
               }

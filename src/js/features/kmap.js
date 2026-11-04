@@ -577,13 +577,93 @@
       ];
     }
 
-    function booleanReductionSteps(sopTrace, posTrace, n, outputLabel) {
+    function termFormula(term, n, isPos = false) {
+      const literals = lits(term, n, isPos);
+      if (!literals.length) return isPos ? "0" : "1";
+      return isPos
+        ? literals.length === 1
+          ? literals[0]
+          : `(${literals.join(" + ")})`
+        : literals.join(" · ");
+    }
+
+    function combinationFormula(combination, n, isPos) {
+      const { left, right, result, difference } = combination;
+      const bit = Math.log2(difference);
+      const variable = inputLabels[n - bit - 1];
+      const leftBit = Boolean(left.v & difference);
+      const rightBit = Boolean(right.v & difference);
+      const literal = (value) =>
+        `${variable}${(isPos ? value : !value) ? "'" : ""}`;
+      const leftLiteral = literal(leftBit);
+      const rightLiteral = literal(rightBit);
+      const common = lits(result, n, isPos).join(isPos ? " + " : " · ");
+      if (isPos) {
+        const leftClause = common
+          ? `(${common} + ${leftLiteral})`
+          : `(${leftLiteral})`;
+        const rightClause = common
+          ? `(${common} + ${rightLiteral})`
+          : `(${rightLiteral})`;
+        return `${leftClause} · ${rightClause} = ${termFormula(result, n, true)}`;
+      }
+
+      const leftTerm = termFormula(left, n);
+      const rightTerm = termFormula(right, n);
+      const factor = common ? `${common} · ` : "";
+      return `${leftTerm} + ${rightTerm} = ${factor}(${leftLiteral} + ${rightLiteral}) = ${termFormula(result, n)}`;
+    }
+
+    function booleanReductionSteps(sopTrace, posTrace, n, outputLabel, optimal) {
       const groups = getBooleanGroups(sopTrace, posTrace);
       const sop = sopStr(sopTrace.selected, n, true);
       const reduced = factorSopTerms(sopTrace.selected, n);
+      const pos = posStr(posTrace.selected, n, true);
+      const kmapGroups = sopTrace.selected.map((term, index) => {
+        const color = GROUP_COLORS[index % GROUP_COLORS.length];
+        const covered = sopTrace.target.filter(
+          (minterm) => (minterm & ~term.m) === term.v,
+        );
+        return `<li style="--qm-color:${color.color};--qm-tint:${color.tint}"><span class="qm-color-swatch"></span><strong>S${index + 1}</strong><code>${termFormula(term, n)}</code><small>m(${covered.join(", ")})</small></li>`;
+      }).join("");
+      const renderFormulas = (trace, isPos, label) => {
+        const formulas = [
+          ...new Set(
+            trace.rounds.flatMap((round) =>
+              round.combinations.map((combination) =>
+                combinationFormula(combination, n, isPos),
+              ),
+            ),
+          ),
+        ];
+        return formulas.map((formula) => `
+          <li><strong>${label}</strong><code>${formula}</code></li>`).join("");
+      };
+      const formulas = [
+        renderFormulas(sopTrace, false, "SOP"),
+        renderFormulas(posTrace, true, "POS"),
+      ].join("");
       return {
         groups,
-        html: `<div class="boolean-reduction-equation"><span>${outputLabel}=${sop}</span><span>=</span><strong>${reduced}</strong></div>`,
+        html: `<section class="boolean-step-section">
+          <h4>Nhóm màu trên K-map</h4>
+          ${kmapGroups
+            ? `<ul class="qm-kmap-legend">${kmapGroups}</ul>`
+            : `<p class="steps-legend">Không có nhóm ô 1 cần tô màu.</p>`}
+          <p class="steps-legend">Mã S1, S2… và màu tương ứng với các nhóm tô trên K-map; một ô 1 có thể thuộc nhiều nhóm.</p>
+        </section>
+        <section class="boolean-step-section">
+          <h4>Công thức đã dùng</h4>
+          ${formulas
+            ? `<ul class="qm-formula-list">${formulas}</ul>`
+            : `<p class="steps-legend">Không cần ghép thêm công thức.</p>`}
+        </section>
+        <section class="boolean-step-section">
+          <h4>Kết quả</h4>
+          <div class="boolean-reduction-equation"><span>${outputLabel} = ${sop}</span><span>→ gom nhân tử →</span><strong>${outputLabel} = ${reduced}</strong></div>
+          <p class="qm-final-formula"><strong>POS:</strong> ${outputLabel} = ${pos}</p>
+          <p class="qm-final-formula"><strong>Tối ưu cổng:</strong> ${outputLabel} = ${optimal.display} <span>(${optimal.gateCount} cổng)</span></p>
+        </section>`,
       };
     }
 
@@ -628,9 +708,13 @@
         for (let c = 0; c < 1 << cvn; c++) {
           const mt = (gy(r) << cvn) | gy(c),
             v = state.tt[mt][i];
-          const cellGroups = groups.filter(
-            (group) => (mt & ~group.implicant.m) === group.implicant.v,
-          );
+          const cellGroups = v === "1"
+            ? groups.filter(
+              (group) =>
+                !group.isPos &&
+                (mt & ~group.implicant.m) === group.implicant.v,
+            )
+            : [];
           const valueClass =
             v === "1" ? "kmap-value-one" : v === "X" ? "kmap-value-x" : "";
           const groupStops = cellGroups
@@ -685,6 +769,7 @@
   <div class="result-heading">
     <div><span class="result-label">OUTPUT</span><h3>${outputLabel}</h3></div>
     <div class="result-actions">
+      <button class="result-action" type="button" onclick="window.openCustomCopyModal(${i})">Export riêng</button>
       <button class="result-action step-toggle" aria-expanded="false" onclick="window.toggleBooleanSteps(${i})">Xem từng bước</button>
     </div>
   </div>
@@ -758,12 +843,22 @@
         return;
       }
 
-      const { sopTrace, posTrace } = state.last.out[outIdx];
+      const out = state.last.out[outIdx];
+      let { sopTrace, posTrace } = out;
+      if (sopTrace.target.length && !sopTrace.rounds.length) {
+        sopTrace = qmTrace(out.on, out.dc, true, state.last.n);
+        out.sopTrace = sopTrace;
+      }
+      if (posTrace.target.length && !posTrace.rounds.length) {
+        posTrace = qmTrace(out.off, out.dc, true, state.last.n);
+        out.posTrace = posTrace;
+      }
       const steps = booleanReductionSteps(
         sopTrace,
         posTrace,
         state.last.n,
         outputLabels[outIdx],
+        out.optimal,
       );
       panel.innerHTML = steps.html;
       $("res").querySelectorAll(".result-card")[outIdx]

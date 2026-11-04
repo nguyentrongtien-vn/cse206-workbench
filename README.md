@@ -24,11 +24,12 @@ comma-separated indexes in the search field, and use the same **Áp dụng bản
 công thức** button as pasted tables and formulas. Pasting table data fills the
 input area; click the shared button to apply it. In the formula textarea,
 Ctrl+Enter (or Cmd+Enter) applies the current input.
-Each output includes **Xem từng bước**, which shows the minimized SOP and a
-compact factored Boolean equivalent, using XOR where a complementary pair is
-recognized. The optimized result uses that same final factored expression and
-shows its synthesized gate count. Displayed expressions omit the AND operator;
-adjacent variable names are parsed using the configured input labels.
+Each output card has **Export riêng** for that output and **Xem từng bước**,
+which shows the minimized SOP and a compact factored Boolean equivalent, using
+XOR where a complementary pair is recognized. The optimized result uses that
+same final factored expression and shows its synthesized gate count. Displayed
+expressions omit the AND operator; adjacent variable names are parsed using the
+configured input labels.
 Each output card exports its own K-map and output pin to a separate BDF file;
 the optimized-row and BDF dialog gate counts both refer only to that selected
 output.
@@ -43,10 +44,13 @@ the same synthesized gate count used for the displayed optimized expression.
 BDF generation synthesizes the selected Boolean expression into Quartus
 primitive gates and routes each net independently; XOR/XNOR parity functions
 are recognized. Contiguous numbered input labels (such as `A0`, `A1`) are
-automatically exported as bus pins with labeled bit taps. The BDF dialog lets
-you rename the input bus and the selected output pin. Expressions and wiring
-remain connected to the original signals. Open the file in Quartus Prime Block
-Editor.
+automatically exported as bus pins with labeled bit taps. BDF input and output
+pin names use the module name as a prefix: the input bus uses the input label's
+base name (for example, `NTT_A`), and each output uses its full truth-table label
+(for example, `NTT_Z0`). Exporting the full module still creates separate BDF
+files per output. The module name is also used for generated file names.
+Expressions and wiring remain connected to the original signals. Open the file
+in Quartus Prime Block Editor.
 
 ## Run
 
